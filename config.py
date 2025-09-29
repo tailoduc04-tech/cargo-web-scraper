@@ -36,5 +36,12 @@ SCRAPER_CONFIGS = {
             "bl_details": "interasia_bl_details.csv",
             "container_histories": "interasia_container_histories.csv"
         }
+    },
+    "cma_cgm": {
+        "url": "https://www.cma-cgm.com/ebusiness/tracking",
+        "output_files": {
+            "summary": "cma_cgm_summary.csv",
+            "history": "cma_cgm_history.csv"
+        }
     }
 }

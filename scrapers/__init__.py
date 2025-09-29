@@ -1,7 +1,9 @@
 from .interasia_scraper import InterasiaScraper
+from .cma_cgm_scraper import CmaCgmScraper
 
 SCRAPERS = {
-    "interasia": InterasiaScraper
+    "interasia": InterasiaScraper,
+    "cma_cgm": CmaCgmScraper
 }
 
 def get_scraper(name, driver, config):
