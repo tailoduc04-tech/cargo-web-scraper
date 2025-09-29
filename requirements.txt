@@ -1,3 +1,7 @@
 selenium
 pandas
-dotenv
+python-dotenv
+fastapi
+uvicorn
+python-multipart
+jinja2

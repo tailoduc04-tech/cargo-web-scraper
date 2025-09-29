@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cargo Web Scraper</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='/style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>Cargo Web Scraper</h1>
+        <p>Chọn dịch vụ và nhập mã B/L để lấy thông tin.</p>
+
+        <form id="scrapeForm">
+            <label for="service">Chọn dịch vụ:</label>
+            <select name="service" id="service">
+                {% for service in services %}
+                <option value="{{ service }}">{{ service.capitalize() }}</option>
+                {% endfor %}
+            </select>
+
+            <label for="bl_number">Nhập B/L Number:</label>
+            <input type="text" id="bl_number" name="bl_number" placeholder="Ví dụ: A49FA02393" required>
+
+            <button type="submit">Bắt đầu Scrape</button>
+        </form>
+
+        <div id="loader" class="loader-container">
+            <div class="loader"></div>
+            <p>Đang xử lý... Quá trình này có thể mất vài phút.</p>
+        </div>
+
+        <div id="success" class="result-container">
+            <h2>Hoàn thành!</h2>
+            <p>File của bạn sẽ tự động bắt đầu tải xuống.</p>
+            <p class="small-text">Nếu việc tải xuống không tự động bắt đầu, <a href="#" id="retryDownloadLink" download>hãy nhấn vào đây</a>.</p>
+            <a href="/" class="link-button">Quay lại trang chính</a>
+        </div>
+
+        <div id="error" class="result-container">
+             <h2>Đã xảy ra lỗi</h2>
+             <p id="errorMessage"></p>
+             <a href="/" class="link-button">Thử lại</a>
+        </div>
+    </div>
+
+    <script>
+        const scrapeForm = document.getElementById('scrapeForm');
+        const loader = document.getElementById('loader');
+        const successDiv = document.getElementById('success');
+        const errorDiv = document.getElementById('error');
+        const retryDownloadLink = document.getElementById('retryDownloadLink');
+        const errorMessage = document.getElementById('errorMessage');
+
+        scrapeForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            scrapeForm.style.display = 'none';
+            loader.style.display = 'block';
+            successDiv.style.display = 'none';
+            errorDiv.style.display = 'none';
+
+            const formData = new FormData(scrapeForm);
+
+            try {
+                const response = await fetch('/start-scrape', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+                loader.style.display = 'none';
+
+                if (response.ok && result.success) {
+                    retryDownloadLink.href = result.download_url;
+                    successDiv.style.display = 'block';
+                    retryDownloadLink.click();
+                } else {
+                    errorMessage.textContent = result.message || 'Đã có lỗi xảy ra.';
+                    errorDiv.style.display = 'block';
+                }
+            } catch (err) {
+                loader.style.display = 'none';
+                errorMessage.textContent = 'Lỗi mạng hoặc server không phản hồi.';
+                errorDiv.style.display = 'block';
+            }
+        });
+    </script>
+</body>
+</html>
