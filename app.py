@@ -89,12 +89,12 @@ async def start_scrape(request: Request, service: str = Form(...), bl_number: st
     return JSONResponse(
         content={
             "success": True,
-            "download_url": str(download_url), # Chuyển URL thành chuỗi
+            "download_url": str(download_url),
             "filename": zip_filename_base
         }
     )
 
-@app.post("/api/v1/track")
+@app.post("/api/v1/track-all")
 async def track_all(request: Request, bl_number: str = Form(...)):
     """
     API endpoint để tự động tra cứu mã vận đơn trên tất cả các scraper.
@@ -129,28 +129,58 @@ async def track_all(request: Request, bl_number: str = Form(...)):
                 }
             )
 
-        if error and "Timeout" in error:
-            search_pattern = os.path.join('output', f'{scraper_name}_timeout_{bl_number}_*.png')
-            screenshot_files = glob.glob(search_pattern)
-            if screenshot_files:
-                latest_screenshot = max(screenshot_files, key=os.path.getctime)
-                return FileResponse(latest_screenshot, media_type='image/png', filename=os.path.basename(latest_screenshot))
-            else:
-                return JSONResponse(
-                    status_code=500,
-                    content={
-                        "success": False,
-                        "message": f"Timeout khi tra cứu trên {scraper_name}, nhưng không tìm thấy screenshot.",
-                        "error": error
-                    }
-                )
-
     return JSONResponse(
         status_code=404,
         content={
             "success": False,
             "message": f"Không tìm thấy thông tin cho mã '{bl_number}'.",
             "searched_on": searched_scrapers
+        }
+    )
+    
+@app.post("/api/v1/track")
+async def track(request: Request, bl_number: str = Form(...), service_name: str = Form(...)):
+    """
+    API endpoint để tự động tra cứu mã vận đơn trên service_name được cung cấp.
+    """
+    if service_name not in scrapers.SCRAPERS.keys():
+        return JSONResponse(
+            status_code=400,
+            content={
+                "success": False,
+                "message": f"service_name phải nằm trong danh sách sau: {list(config.SCRAPER_CONFIGS.keys())}"
+            }
+        )
+    saved_files, error = run_scraping_task(scraper_name=service_name, bl_number=bl_number)
+    
+    if saved_files:
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            zip_filename_base = f"{service_name}_{bl_number}_results_{timestamp}.zip"
+            zip_filepath = os.path.join("output", zip_filename_base)
+
+            with zipfile.ZipFile(zip_filepath, 'w') as zipf:
+                for file in saved_files:
+                    zipf.write(file, os.path.basename(file))
+            
+            for file in saved_files:
+                os.remove(file)
+
+            # Tạo URL tuyệt đối
+            download_url = request.url_for('download_file', filename=zip_filename_base)
+
+            return JSONResponse(
+                content={
+                    "success": True,
+                    "message": f"Đã tìm thấy thông tin trên trang: {service_name}",
+                    "download_url": str(download_url)
+                }
+            )
+    
+    return JSONResponse(
+        status_code=404,
+        content={
+            "success": False,
+            "message": f"Không tìm thấy thông tin cho mã '{bl_number}'."
         }
     )
     

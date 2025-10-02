@@ -108,7 +108,7 @@ class MaerskScraper(BaseScraper):
                     #print(f"Info: Could not find container number for container at index {idx}. Skipping.")
                     continue 
 
-                # --- LOGIC ĐỢI VÀ CLICK ĐÃ ĐƯỢC TỐI ƯU ---
+                # --- LOGIC ĐỢI VÀ CLICK ---
                 toggle_buttons = container.find_elements(By.CSS_SELECTOR, "mc-button[data-test='container-toggle-details']")
                 if toggle_buttons:
                     toggle_button_host = toggle_buttons[0]

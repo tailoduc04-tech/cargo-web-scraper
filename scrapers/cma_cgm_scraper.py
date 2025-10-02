@@ -1,5 +1,3 @@
-# cargo-web-scraper/scrapers/cma_cgm_scraper.py
-
 import pandas as pd
 from datetime import datetime
 from selenium.webdriver.common.by import By
@@ -23,7 +21,6 @@ class CmaCgmScraper(BaseScraper):
             self.driver.get(self.config['url'])
             self.wait = WebDriverWait(self.driver, 30) 
 
-            # --- Nhập thông tin và tìm kiếm ---
             search_input = self.wait.until(EC.presence_of_element_located((By.ID, "Reference")))
             search_input.clear()
             search_input.send_keys(tracking_number)
