@@ -1,6 +1,5 @@
-# cargo-web-scraper/scrapers/interasia_scraper.py
-
 import pandas as pd
+from datetime import datetime
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
@@ -14,7 +13,7 @@ class InterasiaScraper(BaseScraper):
     def scrape(self, tracking_number):
         try:
             self.driver.get(self.config['url'])
-            self.wait = WebDriverWait(self.driver, 15) # Tăng thời gian chờ lên một chút
+            self.wait = WebDriverWait(self.driver, 15)
 
             # --- Logic tìm kiếm chính ---
             search_input = self.wait.until(EC.presence_of_element_located((By.NAME, "query")))
@@ -44,8 +43,7 @@ class InterasiaScraper(BaseScraper):
 
             main_df = pd.DataFrame(scraped_data, columns=headers)
 
-            # --- THAY ĐỔI: Dọn dẹp dữ liệu trong cột B/L No và Container No ---
-            # Sử dụng .str.split() để cắt chuỗi tại ký tự '(' và lấy phần đầu tiên
+            # --- Dọn dẹp dữ liệu trong cột B/L No và Container No ---
             main_df['B/L No'] = main_df['B/L No'].str.split('(').str[0].str.strip()
             main_df['Container No'] = main_df['Container No'].str.split('(').str[0].str.strip()
             # ----------------------------------------------------------------
@@ -65,7 +63,8 @@ class InterasiaScraper(BaseScraper):
 
         except TimeoutException:
             try:
-                screenshot_path = f"output/interasia_timeout_{tracking_number}.png"
+                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                screenshot_path = f"output/interasia_timeout_{tracking_number}_{timestamp}.png"
                 self.driver.save_screenshot(screenshot_path)
                 print(f"Timeout occurred. Saving screenshot to {screenshot_path}")
             except Exception as ss_e:
@@ -73,6 +72,7 @@ class InterasiaScraper(BaseScraper):
             return None, f"Timeout waiting for results for '{tracking_number}'. The website might be slow or the number is invalid."
         except Exception as e:
             return None, f"An unexpected error occurred for '{tracking_number}': {e}"
+
 
     def _scrape_all_bl_details(self, main_df):
         summaries, all_container_events = [], []

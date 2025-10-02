@@ -4,7 +4,7 @@ from .maersk_scraper import MaerskScraper
 
 SCRAPERS = {
     "interasia": InterasiaScraper,
-    "cma_cgm": CmaCgmScraper,
+    #"cma_cgm": CmaCgmScraper,
     "maersk": MaerskScraper
 }
 
@@ -14,5 +14,5 @@ def get_scraper(name, driver, config):
     """
     scraper_class = SCRAPERS.get(name)
     if not scraper_class:
-        raise ValueError(f"No scraper found for '{name}'. Check SCRAPERS dictionary in scrapers/__init__.py")
+        raise ValueError(f"Không có scraper '{name}'.")
     return scraper_class(driver, config)

@@ -1,4 +1,3 @@
-# cargo-web-scraper/config.py
 import os
 from dotenv import load_dotenv
 
@@ -37,13 +36,14 @@ SCRAPER_CONFIGS = {
             "container_histories": "interasia_container_histories.csv"
         }
     },
-    "cma_cgm": {
-        "url": "https://www.cma-cgm.com/ebusiness/tracking",
-        "output_files": {
-            "summary": "cma_cgm_summary.csv",
-            "history": "cma_cgm_history.csv"
-        }
-    },
+    # CMA CGM gắt quá không lấy được data
+    #"cma_cgm": {
+    #    "url": "https://www.cma-cgm.com/ebusiness/tracking",
+    #    "output_files": {
+    #        "summary": "cma_cgm_summary.csv",
+    #        "history": "cma_cgm_history.csv"
+    #    }
+    #},
     "maersk": {
         "url": "https://www.maersk.com/tracking/",
         "output_files": {
