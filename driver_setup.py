@@ -13,19 +13,16 @@ def create_driver(proxy_config=None):
     options = webdriver.ChromeOptions()
 
     # --- Các tùy chọn nâng cao để chống phát hiện ---
-    # Giữ các tùy chọn cũ của bạn vì chúng đều hữu ích
     options.add_argument("--start-maximized")
     options.add_argument("--disable-blink-features=AutomationControlled")
     options.add_experimental_option("excludeSwitches", ["enable-automation"])
     options.add_experimental_option('useAutomationExtension', False)
-    
-    # Bổ sung các tùy chọn để trình duyệt hoạt động ổn định hơn trong container
     options.add_argument('--no-sandbox')
     options.add_argument('--disable-dev-shm-usage')
     options.add_argument('--disable-gpu')
-    options.add_argument("--window-size=1920,1080") # Đặt một độ phân giải phổ biến
+    options.add_argument("--window-size=1920,1080")
 
-    # User-agent vẫn giữ nguyên
+    # User-agent
     user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36"
     options.add_argument(f'user-agent={user_agent}')
 
@@ -48,10 +45,10 @@ def create_driver(proxy_config=None):
         os.remove(plugin_zip)
 
     # --- Chạy các script để che giấu dấu vết của Selenium ---
-    # Script bạn đã có để ẩn 'navigator.webdriver'
+    # Script để ẩn 'navigator.webdriver'
     driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
 
-    # Bổ sung script để giả mạo các thuộc tính khác mà bot hay thiếu
+    # Script để giả mạo các thuộc tính khác mà bot hay thiếu
     driver.execute_script("""
         Object.defineProperty(navigator, 'plugins', {
             get: () => [

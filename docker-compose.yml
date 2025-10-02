@@ -28,7 +28,6 @@ services:
     networks:
       - app-network
 
-  # Dịch vụ Cloudflare Tunnel giữ nguyên
   cloudflared:
     image: cloudflare/cloudflared:latest
     container_name: cloudflared_tunnel

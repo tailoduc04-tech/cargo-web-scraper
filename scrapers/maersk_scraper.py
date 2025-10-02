@@ -90,11 +90,14 @@ class MaerskScraper(BaseScraper):
         except NoSuchElementException: data['To'] = None
         return data
 
+    # cargo-web-scraper/scrapers/maersk_scraper.py
+
     def _extract_history_data(self):
         all_events = []
         containers = self.wait.until(EC.presence_of_all_elements_located((By.CSS_SELECTOR, "div.container--ocean")))
+        #print(f"Found {len(containers)} containers on the page.")
 
-        for container in containers:
+        for idx, container in enumerate(containers):
             container_no = 'unknown' 
             try:
                 # Trích xuất số container
@@ -102,22 +105,32 @@ class MaerskScraper(BaseScraper):
                     container_details_element = container.find_element(By.CSS_SELECTOR, "mc-text-and-icon[data-test='container-details']")
                     container_no = container_details_element.find_element(By.CSS_SELECTOR, "span.mds-text--medium-bold").text.strip()
                 except NoSuchElementException:
+                    #print(f"Info: Could not find container number for container at index {idx}. Skipping.")
                     continue 
 
-                # Mở rộng chi tiết nếu cần
+                # --- LOGIC ĐỢI VÀ CLICK ĐÃ ĐƯỢC TỐI ƯU ---
                 toggle_buttons = container.find_elements(By.CSS_SELECTOR, "mc-button[data-test='container-toggle-details']")
                 if toggle_buttons:
-                    toggle_button_container = toggle_buttons[0]
-                    toggle_button_script = "return arguments[0].shadowRoot.querySelector('button')"
-                    toggle_button = self.driver.execute_script(toggle_button_script, toggle_button_container)
+                    toggle_button_host = toggle_buttons[0]
+                    
+                    # Chỉ nhấn nếu nó đang ở trạng thái đóng
+                    if toggle_button_host.get_attribute("aria-expanded") == 'false':
+                        #print(f"Info: Expanding details for container '{container_no}' (index {idx}).")
+                        
+                        # Sử dụng JavaScript để click trực tiếp vào nút bên trong shadow DOM
+                        button_to_click = self.driver.execute_script("return arguments[0].shadowRoot.querySelector('button')", toggle_button_host)
+                        self.driver.execute_script("arguments[0].click();", button_to_click)
+                        
+                        # Đợi một cách tường minh cho đến khi thuộc tính aria-expanded chuyển thành 'true'
+                        WebDriverWait(self.driver, 5).until(
+                            lambda d: toggle_button_host.get_attribute("aria-expanded") == 'true'
+                        )
+                        # Thêm một khoảng chờ ngắn để đảm bảo animation và DOM được render xong
+                        time.sleep(0.5)
 
-                    if toggle_button and toggle_button.get_attribute("aria-expanded") == 'false':
-                        self.driver.execute_script("arguments[0].click();", toggle_button)
-                        try:
-                            WebDriverWait(container, 5).until(EC.presence_of_element_located((By.CSS_SELECTOR, "div.transport-plan")))
-                        except TimeoutException:
-                            continue 
+                # ----------------------------------------------------
 
+                # Trích xuất dữ liệu
                 plan_lists = container.find_elements(By.CSS_SELECTOR, "ul.transport-plan__list")
                 if not plan_lists:
                     continue
@@ -133,7 +146,6 @@ class MaerskScraper(BaseScraper):
                     except NoSuchElementException: 
                         event_data['Location'] = None
 
-                    # --- LOGIC MỚI: Tách chuỗi Event, Vessel, và Voyage ---
                     milestone_div = event.find_element(By.CSS_SELECTOR, "div.milestone")
                     milestone_lines = milestone_div.text.split('\n')
 
@@ -159,7 +171,7 @@ class MaerskScraper(BaseScraper):
                     all_events.append(event_data)
                     
             except Exception as e:
-                print(f"Could not process container '{container_no}'. Error: {e}")
+                print(f"An unexpected error occurred while processing container '{container_no}'. Error: {e}")
                 traceback.print_exc()
                 continue
                 

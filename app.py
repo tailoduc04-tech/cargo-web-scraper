@@ -64,7 +64,6 @@ def run_scraping_task(scraper_name: str, tracking_number: str):
 
 @app.post("/start-scrape")
 async def start_scrape(request: Request, service: str = Form(...), bl_number: str = Form(...)):
-    # Thêm 'request: Request' vào hàm
     saved_files, error = run_scraping_task(service, bl_number)
 
     if not saved_files:
