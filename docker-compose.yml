@@ -1,0 +1,46 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile.app # Sử dụng một Dockerfile riêng cho app
+    container_name: cargo_scraper_app
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./output:/app/output
+    env_file:
+      - .env
+    # App sẽ phụ thuộc và kết nối tới dịch vụ selenium
+    depends_on:
+      - selenium
+    networks:
+      - app-network
+
+  selenium:
+    image: selenium/standalone-chrome:latest
+    container_name: selenium_chrome
+    shm_size: 2g # Tăng bộ nhớ chia sẻ, quan trọng cho hiệu suất
+    restart: unless-stopped
+    ports:
+      - "7900:7900" # Cổng VNC của Selenium Grid
+      - "4444:4444" # Cổng WebDriver
+    networks:
+      - app-network
+
+  # Dịch vụ Cloudflare Tunnel giữ nguyên
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: cloudflared_tunnel
+    restart: unless-stopped
+    depends_on:
+      - app
+    command: tunnel --no-autoupdate run
+    environment:
+      - TUNNEL_TOKEN=${CLOUDFLARE_TUNNEL_TOKEN}
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge

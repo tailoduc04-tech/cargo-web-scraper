@@ -43,5 +43,12 @@ SCRAPER_CONFIGS = {
             "summary": "cma_cgm_summary.csv",
             "history": "cma_cgm_history.csv"
         }
+    },
+    "maersk": {
+        "url": "https://www.maersk.com/tracking/",
+        "output_files": {
+            "summary": "maersk_summary.csv",
+            "history": "maersk_history.csv"
+        }
     }
 }

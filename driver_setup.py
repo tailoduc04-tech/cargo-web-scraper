@@ -1,3 +1,5 @@
+# cargo-web-scraper/driver_setup.py
+
 import os
 import shutil
 import zipfile
@@ -5,47 +7,74 @@ from selenium import webdriver
 
 def create_driver(proxy_config=None):
     """
-    Khởi tạo và trả về một WebDriver Chrome đã được cấu hình.
-    Hỗ trợ tích hợp proxy có xác thực một cách linh hoạt.
-
-    Args:
-        proxy_config (dict, optional): Dictionary chứa thông tin proxy 
-                                       gồm 'host', 'port', 'user', 'password'. 
-                                       Mặc định là None, nghĩa là không dùng proxy.
-
-    Returns:
-        selenium.webdriver.Chrome: Đối tượng driver đã được cấu hình.
+    Khởi tạo driver bằng cách kết nối tới Selenium Grid/Hub đang chạy
+    và sử dụng extension để xử lý xác thực proxy.
     """
     options = webdriver.ChromeOptions()
+
+    # --- Các tùy chọn nâng cao để chống phát hiện ---
+    # Giữ các tùy chọn cũ của bạn vì chúng đều hữu ích
     options.add_argument("--start-maximized")
-    user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36"
-    options.add_argument(f'user-agent={user_agent}')
     options.add_argument("--disable-blink-features=AutomationControlled")
-    #options.add_argument("--headless")
     options.add_experimental_option("excludeSwitches", ["enable-automation"])
     options.add_experimental_option('useAutomationExtension', False)
+    
+    # Bổ sung các tùy chọn để trình duyệt hoạt động ổn định hơn trong container
+    options.add_argument('--no-sandbox')
+    options.add_argument('--disable-dev-shm-usage')
+    options.add_argument('--disable-gpu')
+    options.add_argument("--window-size=1920,1080") # Đặt một độ phân giải phổ biến
 
-    # Nếu có cấu hình proxy, tạo extension để xác thực
+    # User-agent vẫn giữ nguyên
+    user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36"
+    options.add_argument(f'user-agent={user_agent}')
+
+    # Nếu có cấu hình proxy, tạo và thêm extension để xác thực
     if proxy_config and all(key in proxy_config for key in ['host', 'port', 'user', 'password']):
-        print(f"Initializing driver with proxy: {proxy_config['host']}:{proxy_config['port']}")
+        print(f"Initializing remote driver with proxy: {proxy_config['host']}:{proxy_config['port']}")
         plugin_zip = _create_proxy_extension(proxy_config)
         options.add_extension(plugin_zip)
     else:
-        print("Initializing driver without proxy.")
+        print("Initializing remote driver without proxy.")
 
-    driver = webdriver.Chrome(options=options)
-    
+    # Kết nối tới Selenium Hub đang chạy tại địa chỉ 'http://selenium:4444'
+    driver = webdriver.Remote(
+        command_executor='http://selenium:4444/wd/hub',
+        options=options
+    )
+
     # Dọn dẹp file extension tạm sau khi đã sử dụng
     if 'plugin_zip' in locals() and os.path.exists(plugin_zip):
         os.remove(plugin_zip)
 
+    # --- Chạy các script để che giấu dấu vết của Selenium ---
+    # Script bạn đã có để ẩn 'navigator.webdriver'
     driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
+
+    # Bổ sung script để giả mạo các thuộc tính khác mà bot hay thiếu
+    driver.execute_script("""
+        Object.defineProperty(navigator, 'plugins', {
+            get: () => [
+                { name: 'Chrome PDF Plugin', filename: 'internal-pdf-viewer', description: 'Portable Document Format' },
+                { name: 'Chrome PDF Viewer', filename: 'mhjfbmdgcfjbbpaeojofohoefgiehjai', description: '' },
+                { name: 'Native Client', filename: 'internal-nacl-plugin', description: '' }
+            ],
+        });
+        Object.defineProperty(navigator, 'languages', {
+            get: () => ['en-US', 'en'],
+        });
+        window.chrome = {
+            runtime: {},
+        };
+    """)
+
     return driver
+
 
 def _create_proxy_extension(config):
     """
     Hàm nội bộ, tạo một file .zip extension để xác thực proxy.
-    Điều này giúp xử lý các cửa sổ yêu cầu username/password tự động.
+    (Hàm này giữ nguyên, không thay đổi)
     """
     manifest_json = """
     {
@@ -80,7 +109,7 @@ def _create_proxy_extension(config):
         f.write(manifest_json)
     with open(os.path.join(plugin_dir, "background.js"), 'w') as f:
         f.write(background_js)
-    
+
     plugin_zip = f'{plugin_dir}.zip'
     with zipfile.ZipFile(plugin_zip, 'w', zipfile.ZIP_DEFLATED) as zp:
         for file in os.listdir(plugin_dir):

@@ -44,6 +44,12 @@ class InterasiaScraper(BaseScraper):
 
             main_df = pd.DataFrame(scraped_data, columns=headers)
 
+            # --- THAY ĐỔI: Dọn dẹp dữ liệu trong cột B/L No và Container No ---
+            # Sử dụng .str.split() để cắt chuỗi tại ký tự '(' và lấy phần đầu tiên
+            main_df['B/L No'] = main_df['B/L No'].str.split('(').str[0].str.strip()
+            main_df['Container No'] = main_df['Container No'].str.split('(').str[0].str.strip()
+            # ----------------------------------------------------------------
+
             # --- Scrape các trang chi tiết ---
             summaries, bl_details = self._scrape_all_bl_details(main_df)
             histories = self._scrape_all_container_histories(main_df)
@@ -58,6 +64,12 @@ class InterasiaScraper(BaseScraper):
             return results, None
 
         except TimeoutException:
+            try:
+                screenshot_path = f"output/interasia_timeout_{tracking_number}.png"
+                self.driver.save_screenshot(screenshot_path)
+                print(f"Timeout occurred. Saving screenshot to {screenshot_path}")
+            except Exception as ss_e:
+                print(f"Could not save screenshot: {ss_e}")
             return None, f"Timeout waiting for results for '{tracking_number}'. The website might be slow or the number is invalid."
         except Exception as e:
             return None, f"An unexpected error occurred for '{tracking_number}': {e}"

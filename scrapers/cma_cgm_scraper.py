@@ -20,7 +20,8 @@ class CmaCgmScraper(BaseScraper):
         """
         try:
             self.driver.get(self.config['url'])
-            self.wait = WebDriverWait(self.driver, 20)
+            # Tăng thời gian chờ tối đa lên 30 giây để cho trang có nhiều thời gian hơn để tải
+            self.wait = WebDriverWait(self.driver, 30) 
 
             # --- Nhập thông tin và tìm kiếm ---
             search_input = self.wait.until(EC.presence_of_element_located((By.ID, "Reference")))
@@ -30,19 +31,28 @@ class CmaCgmScraper(BaseScraper):
             search_button = self.wait.until(EC.element_to_be_clickable((By.ID, "btnTracking")))
             search_button.click()
 
-            # --- Chờ và kiểm tra kết quả ---
-            self.wait.until(EC.presence_of_element_located((By.ID, "trackingsearchsection")))
-            time.sleep(2) # Chờ một chút để JS tải xong dữ liệu
+            # --- THAY ĐỔI QUAN TRỌNG: Logic chờ đợi thông minh hơn ---
+            # Thay vì time.sleep(2), hãy chờ một cách tường minh cho đến khi
+            # container chứa kết quả tóm tắt xuất hiện trên trang.
+            # Đây là dấu hiệu chắc chắn nhất cho thấy dữ liệu đã tải xong.
+            self.wait.until(EC.visibility_of_element_located((By.ID, "top-details-0")))
+            
+            # Thêm một khoảng chờ ngắn để đảm bảo các animation hoặc script khác hoàn tất
+            time.sleep(1)
 
             # --- Click để hiển thị các di chuyển cũ hơn ---
             try:
                 # Vòng lặp để click vào tất cả các nút "Display Previous Moves"
                 while True:
-                    display_moves_button = self.driver.find_element(By.CSS_SELECTOR, "a.k-svg-i-caret-alt-right")
-                    self.driver.execute_script("arguments[0].click();", display_moves_button)
-                    time.sleep(1) # Chờ để nội dung được tải
-            except NoSuchElementException:
-                # Không còn nút nào để click
+                    # Dùng find_elements để tránh lỗi nếu không tìm thấy nút
+                    display_moves_buttons = self.driver.find_elements(By.CSS_SELECTOR, "a.k-svg-i-caret-alt-right")
+                    if display_moves_buttons:
+                        self.driver.execute_script("arguments[0].click();", display_moves_buttons[0])
+                        time.sleep(1) # Chờ để nội dung được tải
+                    else:
+                        break # Thoát vòng lặp nếu không còn nút nào
+            except Exception:
+                # Bỏ qua nếu có lỗi xảy ra trong quá trình click (ví dụ: nút biến mất)
                 pass
 
 
@@ -61,6 +71,12 @@ class CmaCgmScraper(BaseScraper):
             return results, None
 
         except TimeoutException:
+            try:
+                screenshot_path = f"output/cmacgm_timeout_{tracking_number}.png"
+                self.driver.save_screenshot(screenshot_path)
+                print(f"Timeout occurred. Saving screenshot to {screenshot_path}")
+            except Exception as ss_e:
+                print(f"Could not save screenshot: {ss_e}")
             return None, f"Timeout waiting for results for '{tracking_number}'. The website might be slow or the number is invalid."
         except Exception as e:
             return None, f"An unexpected error occurred for '{tracking_number}': {e}"
