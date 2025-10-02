@@ -56,7 +56,7 @@ class MaerskScraper(BaseScraper):
                     error_script = "return document.querySelector('mc-input[data-test=\"track-input\"]').shadowRoot.querySelector('.mds-helper-text--negative').textContent"
                     error_message = self.driver.execute_script(error_script)
                     if "Incorrect format" in error_message:
-                        return None, f"Invalid tracking number format for '{tracking_number}': {error_message.strip()}"
+                        return None, f"Không tìm thấy kết quả cho '{tracking_number}': {error_message.strip()}"
                 except Exception:
                     pass
                 raise TimeoutException("Results page did not load.")
@@ -70,11 +70,11 @@ class MaerskScraper(BaseScraper):
                 print(f"Timeout occurred. Saving screenshot to {screenshot_path}")
             except Exception as ss_e:
                 print(f"Could not save screenshot: {ss_e}")
-            return None, f"Timeout waiting for results for '{tracking_number}'. Website might be slow."
+            return None, f"Không tìm thấy kết quả cho '{tracking_number}'."
         except Exception as e:
             print(f"An unexpected error occurred for '{tracking_number}': {e}")
             traceback.print_exc()
-            return None, f"An unexpected error occurred for '{tracking_number}': {e}"
+            return None, f"Không tìm thấy kết quả cho '{tracking_number}': {e}"
 
     def _extract_summary_data(self):
         summary_element = self.wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "div[data-test='search-summary-ocean']")))

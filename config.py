@@ -50,5 +50,12 @@ SCRAPER_CONFIGS = {
             "summary": "maersk_summary.csv",
             "history": "maersk_history.csv"
         }
+    },
+    "msc": {
+        "url": "https://www.msc.com/en/track-a-shipment",
+        "output_files": {
+            "summary": "msc_summary.csv",
+            "history": "msc_history.csv"
+        }
     }
 }

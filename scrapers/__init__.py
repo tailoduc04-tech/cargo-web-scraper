@@ -1,11 +1,13 @@
 from .interasia_scraper import InterasiaScraper
 from .cma_cgm_scraper import CmaCgmScraper
 from .maersk_scraper import MaerskScraper
+from .msc_scraper import MscScraper
 
 SCRAPERS = {
     "interasia": InterasiaScraper,
     #"cma_cgm": CmaCgmScraper,
-    "maersk": MaerskScraper
+    "maersk": MaerskScraper,
+    "msc": MscScraper
 }
 
 def get_scraper(name, driver, config):

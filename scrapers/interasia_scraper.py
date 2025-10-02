@@ -69,9 +69,9 @@ class InterasiaScraper(BaseScraper):
                 print(f"Timeout occurred. Saving screenshot to {screenshot_path}")
             except Exception as ss_e:
                 print(f"Could not save screenshot: {ss_e}")
-            return None, f"Timeout waiting for results for '{tracking_number}'. The website might be slow or the number is invalid."
+            return None, f"Không tìm thấy kết quả cho '{tracking_number}'."
         except Exception as e:
-            return None, f"An unexpected error occurred for '{tracking_number}': {e}"
+            return None, f"Không tìm thấy kết quả cho '{tracking_number}': {e}"
 
 
     def _scrape_all_bl_details(self, main_df):
