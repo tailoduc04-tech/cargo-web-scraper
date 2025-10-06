@@ -69,5 +69,11 @@ SCRAPER_CONFIGS = {
         "output_files": {
             "tracking_info": "zim_tracking_info.csv"
         }
+    },
+    "pil": {
+        "url": "https://www.pilship.com/digital-solutions/?tab=customer&id=track-trace&label=containerTandT&module=TrackTraceJob&refNo=<BL_NUMBER>",
+        "output_files": {
+            "tracking_info": "pil_tracking_info.csv"
+        }
     }
 }
