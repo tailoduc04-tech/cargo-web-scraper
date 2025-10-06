@@ -57,5 +57,17 @@ SCRAPER_CONFIGS = {
             "summary": "msc_summary.csv",
             "history": "msc_history.csv"
         }
+    },
+    "cordelia": {
+        "url": "https://cordelialine.com/bltracking/?blno=",
+        "output_files": {
+            "tracking_info": "cordelia_tracking_info.csv"
+        }
+    },
+    "zim": {
+        "url": "https://www.zim.com/tools/track-a-shipment",
+        "output_files": {
+            "tracking_info": "zim_tracking_info.csv"
+        }
     }
 }
