@@ -69,5 +69,8 @@ SCRAPER_CONFIGS = {
     #}
     "kmtc": {
         "url": "https://www.ekmtc.com/index.html#/cargo-tracking"
+    },
+    "sitc": {
+        "url": "https://ebusiness.sitcline.com/#/topMenu/cargoTrack"
     }
 }
