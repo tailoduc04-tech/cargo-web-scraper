@@ -54,5 +54,8 @@ SCRAPER_CONFIGS = {
     },
      "sinokor": {
         "url": "https://ebiz.sinokor.co.kr/BLDetail?blno=",
+    },
+     "unifeeder": {
+        "url": "https://www.unifeeder.cargoes.com/tracking?ID=",
     }
 }

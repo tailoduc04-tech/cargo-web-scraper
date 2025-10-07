@@ -6,6 +6,7 @@ from .cordelia_scraper import CordeliaScraper
 #from .zim_scraper import ZimScraper
 from .pil_scraper import PilScraper
 from .sinokor_scraper import SinokorScraper
+from .unifeeder_scraper import UnifeederScraper
 
 SCRAPERS = {
     "interasia": InterasiaScraper,
@@ -15,7 +16,8 @@ SCRAPERS = {
     "cordelia": CordeliaScraper,
     #"zim": ZimScraper,
     "pil": PilScraper,
-    "sinokor": SinokorScraper
+    "sinokor": SinokorScraper,
+    "unifeeder": UnifeederScraper
 }
 
 def get_scraper(name, driver, config):
