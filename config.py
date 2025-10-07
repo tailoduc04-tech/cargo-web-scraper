@@ -60,5 +60,8 @@ SCRAPER_CONFIGS = {
     },
      "heungaline": {
         "url": "https://ebiz.heungaline.com/BLDetail?blno="
+     },
+     "tailwind": {
+        "url": "https://tailwind-shipping.com/en/home"
      }
 }

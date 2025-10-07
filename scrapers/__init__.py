@@ -8,6 +8,7 @@ from .pil_scraper import PilScraper
 from .sinokor_scraper import SinokorScraper
 from .unifeeder_scraper import UnifeederScraper
 from .heungaline_scraper import HeungALineScraper
+from .tailwind_scraper import TailwindScraper
 
 SCRAPERS = {
     "interasia": InterasiaScraper,
@@ -19,7 +20,8 @@ SCRAPERS = {
     "pil": PilScraper,
     "sinokor": SinokorScraper,
     "unifeeder": UnifeederScraper,
-    "heungaline": HeungALineScraper
+    "heungaline": HeungALineScraper,
+    "tailwind": TailwindScraper
 }
 
 def get_scraper(name, driver, config):
