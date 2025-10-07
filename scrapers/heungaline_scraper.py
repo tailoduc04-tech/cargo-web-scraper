@@ -10,7 +10,7 @@ import traceback
 
 from .base_scraper import BaseScraper
 
-class SinokorScraper(BaseScraper):
+class HeungALineScraper(BaseScraper):
     """
     Triển khai logic scraping cụ thể cho trang Sinokor và chuẩn hóa kết quả.
     """

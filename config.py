@@ -57,5 +57,8 @@ SCRAPER_CONFIGS = {
     },
      "unifeeder": {
         "url": "https://www.unifeeder.cargoes.com/tracking?ID=",
-    }
+    },
+     "heungaline": {
+        "url": "https://ebiz.heungaline.com/BLDetail?blno="
+     }
 }
