@@ -72,5 +72,8 @@ SCRAPER_CONFIGS = {
     },
     "sitc": {
         "url": "https://ebusiness.sitcline.com/#/topMenu/cargoTrack"
+    },
+    "goldstar": {
+        "url": "https://www.goldstarline.com/tools/track_shipment"
     }
 }

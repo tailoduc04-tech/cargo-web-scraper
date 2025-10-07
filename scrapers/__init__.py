@@ -12,6 +12,7 @@ from .tailwind_scraper import TailwindScraper
 #from .hmm_scraper import HmmScraper
 from .kmtc_scraper import KmtcScraper
 from .sitc_scraper import SitcScraper
+from .goldstar_scraper import GoldstarScraper
 
 SCRAPERS = {
     "interasia": InterasiaScraper,
@@ -27,7 +28,8 @@ SCRAPERS = {
     "tailwind": TailwindScraper,
     #"hmm": HmmScraper,
     "kmtc": KmtcScraper,
-    "sitc": SitcScraper
+    "sitc": SitcScraper,
+    "goldstar": GoldstarScraper
 }
 
 def get_scraper(name, driver, config):
