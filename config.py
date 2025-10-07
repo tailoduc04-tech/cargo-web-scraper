@@ -52,16 +52,22 @@ SCRAPER_CONFIGS = {
     "pil": {
         "url": "https://www.pilship.com/digital-solutions/?tab=customer&id=track-trace&label=containerTandT&module=TrackTraceJob&refNo=<BL_NUMBER>",
     },
-     "sinokor": {
+    "sinokor": {
         "url": "https://ebiz.sinokor.co.kr/BLDetail?blno=",
     },
-     "unifeeder": {
+    "unifeeder": {
         "url": "https://www.unifeeder.cargoes.com/tracking?ID=",
     },
-     "heungaline": {
+    "heungaline": {
         "url": "https://ebiz.heungaline.com/BLDetail?blno="
      },
-     "tailwind": {
+    "tailwind": {
         "url": "https://tailwind-shipping.com/en/home"
-     }
+     },
+    #"hmm": {
+    #   "url": "https://www.hmm21.com/e-service/general/trackNTrace/TrackNTrace.do"
+    #}
+    "kmtc": {
+        "url": "https://www.ekmtc.com/index.html#/cargo-tracking"
+    }
 }
