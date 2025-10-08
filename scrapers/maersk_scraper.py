@@ -11,7 +11,7 @@ from .base_scraper import BaseScraper
 class MaerskScraper(BaseScraper):
     """
     Triển khai logic scraping cụ thể cho trang Maersk.
-    Sử dụng phương pháp truy cập URL trực tiếp để lấy dữ liệu.
+    Sử dụng phương pháp truy cập URL trực tiếp và chuẩn hóa kết quả.
     """
 
     def scrape(self, tracking_number):
@@ -22,32 +22,23 @@ class MaerskScraper(BaseScraper):
             self.wait = WebDriverWait(self.driver, 30)
 
             try:
-                # Đợi và nhấn nút chấp nhận cookie nếu có
                 allow_all_button = self.wait.until(
                     EC.element_to_be_clickable((By.XPATH, "//button[contains(@class, 'coi-banner__accept') and contains(., 'Allow all')]"))
                 )
                 self.driver.execute_script("arguments[0].click();", allow_all_button)
-                # Đợi cho lớp phủ cookie biến mất
                 self.wait.until(EC.invisibility_of_element_located((By.ID, "coiOverlay")))
             except TimeoutException:
                 print("Cookie banner not found or already accepted.")
             
             try:
-                # Đợi cho đến khi phần tóm tắt chính của lô hàng hiển thị
                 self.wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR, "div[data-test='search-summary-ocean']")))
 
-                summary_data = self._extract_summary_data()
-                summary_df = pd.DataFrame([summary_data])
-
-                container_histories = self._extract_history_data()
-                history_df = pd.DataFrame(container_histories)
+                normalized_data = self._extract_and_normalize_data()
                 
-                if history_df.empty:
-                    print("Warning: History data is empty. The scraper might have failed to extract container details.")
-
+                results_df = pd.DataFrame(normalized_data)
+                
                 results = {
-                    "summary": summary_df,
-                    "history": history_df
+                    "tracking_info": results_df
                 }
                 return results, None
 
@@ -62,10 +53,9 @@ class MaerskScraper(BaseScraper):
                 raise TimeoutException("Results page did not load.")
 
         except TimeoutException:
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            screenshot_path = f"output/maersk_timeout_{tracking_number}_{timestamp}.png"
             try:
-                # Thêm timestamp vào tên file screenshot
-                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-                screenshot_path = f"output/maersk_timeout_{tracking_number}_{timestamp}.png"
                 self.driver.save_screenshot(screenshot_path)
                 print(f"Timeout occurred. Saving screenshot to {screenshot_path}")
             except Exception as ss_e:
@@ -76,103 +66,103 @@ class MaerskScraper(BaseScraper):
             traceback.print_exc()
             return None, f"Không tìm thấy kết quả cho '{tracking_number}': {e}"
 
-    def _extract_summary_data(self):
+    def _extract_and_normalize_data(self):
+        """
+        Trích xuất, xử lý và chuẩn hóa dữ liệu từ trang chi tiết của Maersk.
+        """
         summary_element = self.wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "div[data-test='search-summary-ocean']")))
-        data = {}
-        try:
-            data['Bill of Lading'] = summary_element.find_element(By.CSS_SELECTOR, "dd[data-test='transport-doc-value']").text
-        except NoSuchElementException: data['Bill of Lading'] = None
-        try:
-            data['From'] = summary_element.find_element(By.CSS_SELECTOR, "dd[data-test='track-from-value']").text
-        except NoSuchElementException: data['From'] = None
-        try:
-            data['To'] = summary_element.find_element(By.CSS_SELECTOR, "dd[data-test='track-to-value']").text
-        except NoSuchElementException: data['To'] = None
-        return data
+        pol = self._get_summary_value(summary_element, "track-from-value")
+        pod = self._get_summary_value(summary_element, "track-to-value")
 
-    # cargo-web-scraper/scrapers/maersk_scraper.py
-
-    def _extract_history_data(self):
-        all_events = []
-        containers = self.wait.until(EC.presence_of_all_elements_located((By.CSS_SELECTOR, "div.container--ocean")))
-        #print(f"Found {len(containers)} containers on the page.")
-
-        for idx, container in enumerate(containers):
-            container_no = 'unknown' 
+        all_shipments = []
+        
+        containers = self.driver.find_elements(By.CSS_SELECTOR, "div.container--ocean")
+        
+        for container in containers:
             try:
-                # Trích xuất số container
+                toggle_button_host = container.find_element(By.CSS_SELECTOR, "mc-button[data-test='container-toggle-details']")
+                if toggle_button_host.get_attribute("aria-expanded") == 'false':
+                    button_to_click = self.driver.execute_script("return arguments[0].shadowRoot.querySelector('button')", toggle_button_host)
+                    self.driver.execute_script("arguments[0].click();", button_to_click)
+                    WebDriverWait(self.driver, 5).until(
+                        lambda d: toggle_button_host.get_attribute("aria-expanded") == 'true'
+                    )
+                    time.sleep(0.5)
+            except NoSuchElementException:
+                pass
+
+            events = self._extract_events_from_container(container)
+            
+            departure_event = self._find_event(events, "Vessel departure", pol)
+            arrival_event = self._find_event(events, "Vessel arrival", pod)
+
+            transit_ports = []
+            for event in events:
+                location = event.get('location', '').strip() if event.get('location') else ''
+                if location and pol not in location and pod not in location:
+                    if "arrival" in event.get('description','').lower() or "departure" in event.get('description','').lower():
+                        if location not in transit_ports:
+                           transit_ports.append(location)
+
+            shipment_data = {
+                "POL": pol,
+                "POD": pod,
+                "transit_port": ", ".join(transit_ports) if transit_ports else None,
+                "ngay_tau_di": {
+                    "ngay_du_kien": departure_event.get('date') if departure_event and 'ngay_du_kien' in departure_event.get('type') else None,
+                    "ngay_thuc_te": departure_event.get('date') if departure_event and 'ngay_thuc_te' in departure_event.get('type') else None
+                },
+                "ngay_tau_den": {
+                    "ngay_du_kien": arrival_event.get('date') if arrival_event else None,
+                    "ngay_thuc_te": None 
+                },
+                "lich_su": events
+            }
+            all_shipments.append(shipment_data)
+            
+        return all_shipments
+
+    def _get_summary_value(self, summary_element, data_test_id):
+        try:
+            return summary_element.find_element(By.CSS_SELECTOR, f"dd[data-test='{data_test_id}']").text
+        except NoSuchElementException:
+            return None
+
+    def _extract_events_from_container(self, container_element):
+        events = []
+        try:
+            transport_plan = container_element.find_element(By.CSS_SELECTOR, ".transport-plan__list")
+            list_items = transport_plan.find_elements(By.CSS_SELECTOR, "li.transport-plan__list__item")
+            
+            for item in list_items:
+                event_data = {}
                 try:
-                    container_details_element = container.find_element(By.CSS_SELECTOR, "mc-text-and-icon[data-test='container-details']")
-                    container_no = container_details_element.find_element(By.CSS_SELECTOR, "span.mds-text--medium-bold").text.strip()
-                except NoSuchElementException:
-                    #print(f"Info: Could not find container number for container at index {idx}. Skipping.")
-                    continue 
-
-                # --- LOGIC ĐỢI VÀ CLICK ---
-                toggle_buttons = container.find_elements(By.CSS_SELECTOR, "mc-button[data-test='container-toggle-details']")
-                if toggle_buttons:
-                    toggle_button_host = toggle_buttons[0]
-                    
-                    # Chỉ nhấn nếu nó đang ở trạng thái đóng
-                    if toggle_button_host.get_attribute("aria-expanded") == 'false':
-                        #print(f"Info: Expanding details for container '{container_no}' (index {idx}).")
-                        
-                        # Sử dụng JavaScript để click trực tiếp vào nút bên trong shadow DOM
-                        button_to_click = self.driver.execute_script("return arguments[0].shadowRoot.querySelector('button')", toggle_button_host)
-                        self.driver.execute_script("arguments[0].click();", button_to_click)
-                        
-                        # Đợi một cách tường minh cho đến khi thuộc tính aria-expanded chuyển thành 'true'
-                        WebDriverWait(self.driver, 5).until(
-                            lambda d: toggle_button_host.get_attribute("aria-expanded") == 'true'
-                        )
-                        # Thêm một khoảng chờ ngắn để đảm bảo animation và DOM được render xong
-                        time.sleep(0.5)
-
-                # ----------------------------------------------------
-
-                # Trích xuất dữ liệu
-                plan_lists = container.find_elements(By.CSS_SELECTOR, "ul.transport-plan__list")
-                if not plan_lists:
-                    continue
-
-                plan_list = plan_lists[0]
-                events = plan_list.find_elements(By.CSS_SELECTOR, "li.transport-plan__list__item")
+                    location_text = item.find_element(By.CSS_SELECTOR, "div.location").text
+                    event_data['location'] = location_text.replace('\n', ', ')
+                except NoSuchElementException: 
+                    event_data['location'] = None
                 
-                for event in events:
-                    event_data = {'Container No': container_no}
-                    try:
-                        location_div = event.find_element(By.CSS_SELECTOR, "div.location")
-                        event_data['Location'] = location_div.text.replace('\n', ', ')
-                    except NoSuchElementException: 
-                        event_data['Location'] = None
-
-                    milestone_div = event.find_element(By.CSS_SELECTOR, "div.milestone")
-                    milestone_lines = milestone_div.text.split('\n')
-
-                    full_event_text = milestone_lines[0] if len(milestone_lines) > 0 else None
-                    event_data['Date'] = milestone_lines[1] if len(milestone_lines) > 1 else None
-                    
-                    event_data['Event'] = full_event_text
-                    event_data['Vessel'] = None
-                    event_data['Voyage'] = None
-
-                    if full_event_text and '(' in full_event_text:
-                        event_parts = full_event_text.split('(', 1)
-                        event_data['Event'] = event_parts[0].strip()
-                        
-                        vessel_voyage_str = event_parts[1].strip(' )')
-                        if '/' in vessel_voyage_str:
-                            vessel_parts = vessel_voyage_str.split('/')
-                            event_data['Vessel'] = vessel_parts[0].strip()
-                            event_data['Voyage'] = vessel_parts[1].strip()
-                        else:
-                            event_data['Vessel'] = vessel_voyage_str
-                    
-                    all_events.append(event_data)
-                    
-            except Exception as e:
-                print(f"An unexpected error occurred while processing container '{container_no}'. Error: {e}")
-                traceback.print_exc()
-                continue
+                milestone_div = item.find_element(By.CSS_SELECTOR, "div.milestone")
+                milestone_lines = milestone_div.text.split('\n')
                 
-        return all_events
+                event_data['description'] = milestone_lines[0] if len(milestone_lines) > 0 else None
+                event_data['date'] = milestone_lines[1] if len(milestone_lines) > 1 else None
+                event_data['type'] = "ngay_du_kien" if "future" in item.get_attribute("class") else "ngay_thuc_te"
+                
+                events.append(event_data)
+        except NoSuchElementException:
+            print("Could not find transport plan for a container.")
+
+        return events
+    
+    def _find_event(self, events, description_keyword, location_keyword):
+        if not location_keyword:
+            return {}
+        for event in events:
+            # Bổ sung kiểm tra để đảm bảo event['location'] không phải là None
+            event_location = event.get("location") or ""
+            desc_match = description_keyword.lower() in event.get("description", "").lower()
+            loc_match = location_keyword.lower() in event_location.lower()
+            if desc_match and loc_match:
+                return event
+        return {}

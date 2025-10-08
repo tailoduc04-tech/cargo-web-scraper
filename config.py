@@ -29,33 +29,51 @@ else:
 SCRAPER_CONFIGS = {
     "interasia": {
         "url": "https://www.interasia.cc/Service/Form?servicetype=0",
-        "output_files": {
-            "main_results": "interasia_results.csv",
-            "bl_summaries": "interasia_bl_summaries.csv",
-            "bl_details": "interasia_bl_details.csv",
-            "container_histories": "interasia_container_histories.csv"
-        }
     },
     # CMA CGM gắt quá không lấy được data
     #"cma_cgm": {
     #    "url": "https://www.cma-cgm.com/ebusiness/tracking",
-    #    "output_files": {
-    #        "summary": "cma_cgm_summary.csv",
-    #        "history": "cma_cgm_history.csv"
-    #    }
     #},
     "maersk": {
         "url": "https://www.maersk.com/tracking/",
-        "output_files": {
-            "summary": "maersk_summary.csv",
-            "history": "maersk_history.csv"
-        }
     },
     "msc": {
         "url": "https://www.msc.com/en/track-a-shipment",
-        "output_files": {
-            "summary": "msc_summary.csv",
-            "history": "msc_history.csv"
-        }
+    },
+    "cordelia": {
+        "url": "https://cordelialine.com/bltracking/?blno=",
+    },
+    #"zim": {
+    #    "url": "https://www.zim.com/tools/track-a-shipment",
+    #    "output_files": {
+    #        "tracking_info": "zim_tracking_info.csv"
+    #    }
+    #},
+    "pil": {
+        "url": "https://www.pilship.com/digital-solutions/?tab=customer&id=track-trace&label=containerTandT&module=TrackTraceJob&refNo=<BL_NUMBER>",
+    },
+    "sinokor": {
+        "url": "https://ebiz.sinokor.co.kr/BLDetail?blno=",
+    },
+    "unifeeder": {
+        "url": "https://www.unifeeder.cargoes.com/tracking?ID=",
+    },
+    "heungaline": {
+        "url": "https://ebiz.heungaline.com/BLDetail?blno="
+     },
+    "tailwind": {
+        "url": "https://tailwind-shipping.com/en/home"
+     },
+    #"hmm": {
+    #   "url": "https://www.hmm21.com/e-service/general/trackNTrace/TrackNTrace.do"
+    #}
+    "kmtc": {
+        "url": "https://www.ekmtc.com/index.html#/cargo-tracking"
+    },
+    "sitc": {
+        "url": "https://ebusiness.sitcline.com/#/topMenu/cargoTrack"
+    },
+    "goldstar": {
+        "url": "https://www.goldstarline.com/tools/track_shipment"
     }
 }

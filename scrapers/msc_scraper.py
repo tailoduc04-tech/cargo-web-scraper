@@ -1,5 +1,3 @@
-# cargo-web-scraper/scrapers/msc_scraper.py
-
 import pandas as pd
 from datetime import datetime
 from selenium.webdriver.common.by import By
@@ -14,7 +12,7 @@ from .base_scraper import BaseScraper
 class MscScraper(BaseScraper):
     """
     Triển khai logic scraping cụ thể cho trang web MSC,
-    tập trung vào tìm kiếm theo Booking Number.
+    tập trung vào tìm kiếm theo Booking Number và chuẩn hóa kết quả.
     """
 
     def scrape(self, tracking_number):
@@ -32,13 +30,13 @@ class MscScraper(BaseScraper):
             except TimeoutException:
                 print("Cookie banner not found or already accepted.")
 
-            # 2. Chuyển sang tìm kiếm bằng Booking Number (SỬA LỖI TẠI ĐÂY)
+            # 2. Chuyển sang tìm kiếm bằng Booking Number
             booking_radio_button = self.wait.until(
                 EC.presence_of_element_located((By.ID, "bookingradio"))
             )
             self.driver.execute_script("arguments[0].click();", booking_radio_button)
             print("Switched to Booking Number search.")
-            time.sleep(0.5) # Thêm một khoảng chờ ngắn để đảm bảo giao diện cập nhật
+            time.sleep(0.5)
 
             # 3. Nhập Booking Number và tìm kiếm
             search_input = self.wait.until(
@@ -51,47 +49,33 @@ class MscScraper(BaseScraper):
             search_form.submit()
             print(f"Searching for Booking Number: {tracking_number}")
 
-            # 4. Đợi kết quả và mở rộng tất cả các chi tiết
+            # 4. Đợi kết quả và mở rộng chi tiết
             self.wait.until(
                 EC.visibility_of_element_located((By.CLASS_NAME, "msc-flow-tracking__result"))
             )
             print("Results page loaded.")
-            time.sleep(2) 
+            time.sleep(2)
 
-            # Mở rộng tất cả các container
             more_buttons = self.driver.find_elements(By.CSS_SELECTOR, ".msc-flow-tracking__more-button")
-            print(f"Found {len(more_buttons)} container(s) to expand.")
             for button in more_buttons:
                 try:
                     self.driver.execute_script("arguments[0].click();", button)
                     time.sleep(1)
                 except Exception as e:
                     print(f"Could not click container expand button: {e}")
-
-            # Mở rộng tất cả các cảng trung gian
-            # Sử dụng XPath để tìm chính xác nút có chữ "Show all"
-            show_all_xpath = "//button[contains(@class, 'msc-cta-icon--show') and .//span[contains(text(), 'Show all')]]"
-            show_all_buttons = self.driver.find_elements(By.XPATH, show_all_xpath)
-            print(f"Found {len(show_all_buttons)} 'Show all' buttons to expand.")
-            for button in show_all_buttons:
-                try:
-                    self.driver.execute_script("arguments[0].click();", button)
-                    time.sleep(1)
-                except Exception as e:
-                    print(f"Could not click 'Show all' button: {e}")
             
-            print("All details expanded.")
+            print("All container details expanded.")
 
-            # 5. Trích xuất dữ liệu
-            summary_data = self._extract_summary_data()
-            summary_df = pd.DataFrame([summary_data])
-
-            history_events = self._extract_history_data()
-            history_df = pd.DataFrame(history_events)
-
+            # 5. Trích xuất và chuẩn hóa dữ liệu
+            normalized_data = self._extract_and_normalize_data()
+            
+            # Đóng gói dữ liệu đã chuẩn hóa vào DataFrame
+            # Mặc dù app.py sẽ chuyển nó thành JSON, việc sử dụng DataFrame
+            # giúp duy trì cấu trúc nhất quán với các scraper khác.
+            results_df = pd.DataFrame(normalized_data)
+            
             results = {
-                "summary": summary_df,
-                "history": history_df
+                "tracking_info": results_df
             }
             return results, None
 
@@ -109,70 +93,87 @@ class MscScraper(BaseScraper):
             traceback.print_exc()
             return None, f"Không tìm thấy kết quả cho '{tracking_number}': {e}"
 
-    def _extract_summary_data(self):
-        summary_data = {}
+    def _extract_and_normalize_data(self):
+        """
+        Trích xuất, xử lý và chuẩn hóa dữ liệu thành định dạng JSON mong muốn.
+        """
+        # Trích xuất thông tin tóm tắt chung
         details_section = self.wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, ".msc-flow-tracking__details ul")))
         
-        items = details_section.find_elements(By.TAG_NAME, "li")
-        for item in items:
-            try:
-                heading_raw = item.find_element(By.CLASS_NAME, "msc-flow-tracking__details-heading").text
-                heading = heading_raw.strip().strip(':')
-                
-                # Xử lý trường hợp có nhiều value cho một heading (ví dụ: Transhipment)
-                values = item.find_elements(By.CLASS_NAME, "msc-flow-tracking__details-value")
-                value_text = ', '.join([v.text for v in values if v.text])
-
-                summary_data[heading] = value_text
-            except NoSuchElementException:
-                continue
+        pol = self._get_detail_value(details_section, "Port of Load")
+        pod = self._get_detail_value(details_section, "Port of Discharge")
         
-        try:
-            subtitle_info = self.driver.find_element(By.CSS_SELECTOR, ".msc-flow-tracking__subtitle-info").text
-            summary_data['Number of Containers'] = subtitle_info
-        except NoSuchElementException:
-             summary_data['Number of Containers'] = None
+        # Xử lý trường hợp có nhiều cảng trung chuyển
+        transhipment_elements = details_section.find_elements(By.XPATH, ".//li[contains(., 'Transhipment')]/span[contains(@class, 'details-value')]")
+        transit_ports = [elem.text for elem in transhipment_elements if elem.text]
 
-        return summary_data
-
-    def _extract_history_data(self):
-        all_events = []
+        # Lặp qua từng container để lấy lịch sử chi tiết
+        normalized_results = []
         containers = self.driver.find_elements(By.CSS_SELECTOR, ".msc-flow-tracking__container")
 
         for container in containers:
+            events = self._extract_container_events(container)
+            
+            # Tìm các ngày quan trọng từ lịch sử container
+            departure_date = self._find_event_date(events, "Export Loaded on Vessel", pol)
+            arrival_date_estimated = self._find_event_date(events, "Estimated Time of Arrival", pod)
+            
+            # Xây dựng đối tượng JSON cho mỗi container
+            container_info = {
+                "POL": pol,
+                "POD": pod,
+                "transit_port": ", ".join(transit_ports) if transit_ports else None,
+                "ngay_tau_di": {
+                    "ngay_du_kien": None, # MSC không hiển thị ngày đi dự kiến rõ ràng
+                    "ngay_thuc_te": departure_date
+                },
+                "ngay_tau_den": {
+                    "ngay_du_kien": arrival_date_estimated,
+                    "ngay_thuc_te": None # Cần logic để xác định ngày đến thực tế nếu có
+                },
+                "lich_su": events
+            }
+            normalized_results.append(container_info)
+            
+        return normalized_results
+
+    def _get_detail_value(self, section, heading_text):
+        """Lấy giá trị từ một mục trong phần details."""
+        try:
+            return section.find_element(By.XPATH, f".//li[contains(., '{heading_text}')]/span[contains(@class, 'details-value')]").text
+        except NoSuchElementException:
+            return None
+
+    def _extract_container_events(self, container_element):
+        """Trích xuất lịch sử di chuyển cho một container cụ thể."""
+        events = []
+        steps = container_element.find_elements(By.CSS_SELECTOR, ".msc-flow-tracking__step")
+        
+        for step in steps:
             try:
-                container_no = container.find_element(By.CSS_SELECTOR, ".msc-flow-tracking__cell--one .data-value").text
-                container_type = container.find_element(By.CSS_SELECTOR, ".msc-flow-tracking__cell--two .data-value").text
+                date = step.find_element(By.CSS_SELECTOR, ".msc-flow-tracking__cell--two .data-value").text
+                description = step.find_element(By.CSS_SELECTOR, ".msc-flow-tracking__cell--four .data-value").text
+                
+                event_type = "ngay_du_kien" if "estimated" in description.lower() or "intended" in description.lower() else "ngay_thuc_te"
+
+                events.append({
+                    "date": date,
+                    "type": event_type,
+                    "description": description,
+                    "location": step.find_element(By.CSS_SELECTOR, ".msc-flow-tracking__cell--three .data-value").text
+                })
             except NoSuchElementException:
                 continue
+        return events
 
-            steps = container.find_elements(By.CSS_SELECTOR, ".msc-flow-tracking__step")
-            for step in steps:
-                event_data = {
-                    'Container No': container_no,
-                    'Container Type': container_type,
-                }
-                try:
-                    event_data['Date'] = step.find_element(By.CSS_SELECTOR, ".msc-flow-tracking__cell--two .data-value").text
-                except NoSuchElementException: event_data['Date'] = None
-                try:
-                    event_data['Location'] = step.find_element(By.CSS_SELECTOR, ".msc-flow-tracking__cell--three .data-value").text
-                except NoSuchElementException: event_data['Location'] = None
-                try:
-                    event_data['Description'] = step.find_element(By.CSS_SELECTOR, ".msc-flow-tracking__cell--four .data-value").text
-                except NoSuchElementException: event_data['Description'] = None
-                try:
-                    # Lấy cả text chính và text trong tooltip nếu có
-                    vessel_voyage_element = step.find_element(By.CSS_SELECTOR, ".msc-flow-tracking__cell--five .data-value span")
-                    event_data['Vessel/Voyage'] = vessel_voyage_element.text
-                except NoSuchElementException: 
-                    event_data['Vessel/Voyage'] = None
-                try:
-                    facility_element = step.find_element(By.CSS_SELECTOR, ".msc-flow-tracking__cell--six .data-value span")
-                    event_data['Facility'] = facility_element.text
-                except NoSuchElementException: 
-                    event_data['Facility'] = None
-                
-                all_events.append(event_data)
+    def _find_event_date(self, events, description_keyword, location_keyword=None):
+        """Tìm ngày của một sự kiện cụ thể trong danh sách."""
+        for event in events:
+            desc_match = description_keyword.lower() in event.get("description", "").lower()
+            loc_match = True
+            if location_keyword:
+                loc_match = location_keyword.lower() in event.get("location", "").lower()
 
-        return all_events
+            if desc_match and loc_match:
+                return event.get("date")
+        return None
