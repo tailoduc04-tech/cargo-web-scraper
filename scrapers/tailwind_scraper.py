@@ -11,9 +11,30 @@ from .base_scraper import BaseScraper
 
 class TailwindScraper(BaseScraper):
     """
-    Triển khai logic scraping cụ thể cho trang web Tailwind Shipping,
-    xử lý việc mở tab mới và lấy dữ liệu chi tiết.
+    Triển khai logic scraping cụ thể cho trang web Tailwind Shipping.
+    Đầu ra được chuẩn hóa theo template JSON yêu cầu.
     """
+
+    def _format_date(self, date_str):
+        """
+        Chuyển đổi các định dạng ngày tháng khác nhau sang 'DD/MM/YYYY'.
+        Ví dụ: '14-Oct-2025 06:51' hoặc 'ETD: 01/10/2025 11:18 am'
+        """
+        if not date_str:
+            return None
+        
+        # Loại bỏ các tiền tố không cần thiết
+        if "ETD:" in date_str: date_str = date_str.replace("ETD:", "").strip()
+        if "ETA:" in date_str: date_str = date_str.replace("ETA:", "").strip()
+
+        # Thử các định dạng phổ biến
+        for fmt in ('%d-%b-%Y %H:%M', '%d/%m/%Y %I:%M %p'):
+            try:
+                dt_obj = datetime.strptime(date_str, fmt)
+                return dt_obj.strftime('%d/%m/%Y')
+            except ValueError:
+                continue
+        return date_str # Trả về chuỗi gốc nếu không parse được
 
     def scrape(self, tracking_number):
         original_window = self.driver.current_window_handle
@@ -27,9 +48,8 @@ class TailwindScraper(BaseScraper):
                 cookie_button = self.wait.until(EC.element_to_be_clickable((By.ID, "onetrust-accept-btn-handler")))
                 self.driver.execute_script("arguments[0].click();", cookie_button)
                 self.wait.until(EC.invisibility_of_element_located((By.ID, "onetrust-banner-sdk")))
-                print("Đã chấp nhận cookies.")
             except TimeoutException:
-                print("Không tìm thấy banner cookie hoặc đã được chấp nhận.")
+                print("[Tailwind] Không tìm thấy banner cookie hoặc đã được chấp nhận.")
 
             # 2. Nhập liệu và tìm kiếm
             search_input = self.wait.until(EC.presence_of_element_located((By.ID, "booking-number")))
@@ -40,7 +60,7 @@ class TailwindScraper(BaseScraper):
             self.driver.execute_script("arguments[0].scrollIntoView(true);", search_button)
             time.sleep(0.5)
             self.driver.execute_script("arguments[0].click();", search_button)
-            print(f"Đang tìm kiếm Booking Number: {tracking_number}")
+            print(f"[Tailwind] Đang tìm kiếm Booking Number: {tracking_number}")
 
             # 3. Chờ và chuyển sang tab mới
             self.wait.until(EC.number_of_windows_to_be(2))
@@ -48,11 +68,11 @@ class TailwindScraper(BaseScraper):
                 if window_handle != original_window:
                     self.driver.switch_to.window(window_handle)
                     break
-            print("Đã chuyển sang tab kết quả.")
+            print("[Tailwind] Đã chuyển sang tab kết quả.")
 
             # 4. Đợi trang kết quả tải và trích xuất dữ liệu
             self.wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR, "div.stepwizard")))
-            print("Đã tải trang kết quả.")
+            print("[Tailwind] Đã tải trang kết quả.")
             time.sleep(2)
 
             normalized_data = self._extract_and_normalize_data()
@@ -60,33 +80,36 @@ class TailwindScraper(BaseScraper):
             if not normalized_data:
                 return None, f"Không thể trích xuất dữ liệu đã chuẩn hóa cho '{tracking_number}'."
 
-            results_df = pd.DataFrame(normalized_data)
-            results = {"tracking_info": results_df}
-            return results, None
+            # Trả về dictionary duy nhất theo yêu cầu
+            return normalized_data, None
 
         except TimeoutException:
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             screenshot_path = f"output/tailwind_timeout_{tracking_number}_{timestamp}.png"
             try:
                 self.driver.save_screenshot(screenshot_path)
-                print(f"Timeout xảy ra. Đang lưu ảnh chụp màn hình vào {screenshot_path}")
+                print(f"[Tailwind] Timeout. Đã lưu ảnh chụp màn hình vào {screenshot_path}")
             except Exception as ss_e:
-                print(f"Không thể lưu ảnh chụp màn hình: {ss_e}")
+                print(f"[Tailwind] Lỗi: Không thể lưu ảnh chụp màn hình: {ss_e}")
             return None, f"Không tìm thấy kết quả cho '{tracking_number}'. Trang web có thể đang chậm hoặc mã không hợp lệ."
         except Exception as e:
-            print(f"Một lỗi không mong muốn đã xảy ra cho '{tracking_number}': {e}")
+            print(f"[Tailwind] Lỗi không mong muốn: {e}")
             traceback.print_exc()
-            return None, f"Một lỗi không mong muốn đã xảy ra cho '{tracking_number}': {e}"
+            return None, f"Lỗi không mong muốn cho '{tracking_number}': {e}"
         finally:
-            # Đóng các tab không cần thiết và quay về tab gốc
+            # Dọn dẹp: Đóng các tab không cần thiết và quay về tab gốc
             for window_handle in self.driver.window_handles:
                 if window_handle != original_window:
                     self.driver.switch_to.window(window_handle)
                     self.driver.close()
             self.driver.switch_to.window(original_window)
-            print("Đã dọn dẹp và quay về tab gốc.")
+            print("[Tailwind] Đã dọn dẹp và quay về tab gốc.")
 
     def _extract_and_normalize_data(self):
+        # --- 1. Trích xuất thông tin chung ---
+        booking_no = self.driver.find_element(By.CSS_SELECTOR, ".txt_tra_data.mail_bkgno").text
+        bl_no = self.driver.find_element(By.CSS_SELECTOR, ".txt_tra_data.mail_blno").text
+        
         pol_element = self.wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, ".stepwizard-step:first-child .txt_port_name")))
         pod_element = self.wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, ".stepwizard-step:last-child .txt_port_name")))
         
@@ -97,59 +120,67 @@ class TailwindScraper(BaseScraper):
         transit_ports = [self._get_tooltip_text(el) for el in transit_elements]
 
         etd_element = self.driver.find_element(By.CSS_SELECTOR, ".stepwizard-step:first-child .tracker_icon")
-        estimated_departure_date_raw = self._get_tooltip_text(etd_element) # "ETD: 01/10/2025 11:18 am"
-        estimated_departure_date = estimated_departure_date_raw.replace("ETD:", "").strip()
+        etd_raw = self._get_tooltip_text(etd_element)
 
         eta_element = self.driver.find_element(By.CSS_SELECTOR, ".stepwizard-step:last-child .tracker_icon")
-        estimated_arrival_date_raw = self._get_tooltip_text(eta_element) # "ETD: 01/10/2025 11:18 am"
-        estimated_arrival_date = estimated_arrival_date_raw.replace("ETA:", "").strip()
+        eta_raw = self._get_tooltip_text(eta_element)
 
-        normalized_results = []
-        container_rows = self.driver.find_elements(By.CSS_SELECTOR, "#datatablebytrack tbody tr:not(.mailcontent)")
+        # --- 2. Xử lý chi tiết từ container đầu tiên ---
+        # Giả định thông tin từ container đầu tiên là đại diện cho cả lô hàng
+        first_container_row = self.driver.find_element(By.CSS_SELECTOR, "#datatablebytrack tbody tr:not(.mailcontent)")
         
-        for index, row in enumerate(container_rows):
-            try:
-                view_details_button = row.find_element(By.CSS_SELECTOR, "button.view_details")
-                self.driver.execute_script("arguments[0].click();", view_details_button)
-                
-                self.wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR, ".fancybox-container .timeline-small")))
-                
-                events = self._extract_events_from_popup()
-                
-                departure_event = self._find_event(events, "LOAD FULL", pol)
-                actual_departure_date = departure_event.get("date") if departure_event else None
+        atd, ata, ata_transit, atd_transit = None, None, None, None
+        
+        try:
+            view_details_button = first_container_row.find_element(By.CSS_SELECTOR, "button.view_details")
+            self.driver.execute_script("arguments[0].click();", view_details_button)
+            
+            self.wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR, ".fancybox-container .timeline-small")))
+            
+            events = self._extract_events_from_popup()
+            
+            # Tìm các sự kiện quan trọng
+            departure_event = self._find_event(events, "LOAD FULL", pol)
+            arrival_event = self._find_event(events, "DISCHARGE FULL", pod)
+            atd = departure_event.get("date") if departure_event else None
+            ata = arrival_event.get("date") if arrival_event else None
 
-                shipment_data = {
-                    "POL": pol,
-                    "POD": pod,
-                    "transit_port": ", ".join(transit_ports) if transit_ports else None,
-                    "ngay_tau_di": {
-                        "ngay_du_kien": estimated_departure_date,
-                        "ngay_thuc_te": actual_departure_date
-                    },
-                    "ngay_tau_den": {
-                        "ngay_du_kien": estimated_arrival_date,
-                        "ngay_thuc_te": None 
-                    },
-                    "lich_su": events
-                }
-                normalized_results.append(shipment_data)
-                
-                close_button = self.driver.find_element(By.CSS_SELECTOR, ".fancybox-container .fancybox-close-small")
-                close_button.click()
-                self.wait.until(EC.invisibility_of_element_located((By.CSS_SELECTOR, ".fancybox-container")))
+            if transit_ports:
+                # Actual arrival at the first transit port
+                ata_transit_event = self._find_event(events, "DISCHARGE TRANSHIPMENT FULL", transit_ports[0])
+                ata_transit = ata_transit_event.get("date") if ata_transit_event else None
+                # Actual departure from the last transit port
+                atd_transit_event = self._find_event(events, "LOAD TRANSHIPMENT FULL", transit_ports[-1])
+                atd_transit = atd_transit_event.get("date") if atd_transit_event else None
 
-            except Exception as e:
-                print(f"Lỗi khi xử lý container thứ {index + 1}: {e}")
-                traceback.print_exc()
-                try:
-                    if self.driver.find_element(By.CSS_SELECTOR, ".fancybox-container").is_displayed():
-                        self.driver.find_element(By.CSS_SELECTOR, ".fancybox-container .fancybox-close-small").click()
-                except:
-                    pass
-                continue
+            # Đóng popup
+            close_button = self.driver.find_element(By.CSS_SELECTOR, ".fancybox-container .fancybox-close-small")
+            close_button.click()
+            self.wait.until(EC.invisibility_of_element_located((By.CSS_SELECTOR, ".fancybox-container")))
+
+        except Exception as e:
+            print(f"[Tailwind] Lỗi khi xử lý chi tiết container: {e}")
+            traceback.print_exc()
+
+        # --- 3. Xây dựng đối tượng JSON cuối cùng ---
+        shipment_data = {
+            "BookingNo": booking_no,
+            "BlNumber": bl_no,
+            "BookingStatus": None,
+            "Pol": pol,
+            "Pod": pod,
+            "Etd": self._format_date(etd_raw),
+            "Atd": self._format_date(atd),
+            "Eta": self._format_date(eta_raw),
+            "Ata": self._format_date(ata),
+            "EtdTransit": None,
+            "AtdTrasit": self._format_date(atd_transit),
+            "TransitPort": ", ".join(transit_ports) if transit_ports else None,
+            "EtaTransit": None,
+            "AtaTrasit": self._format_date(ata_transit)
+        }
                 
-        return normalized_results
+        return shipment_data
 
     def _get_tooltip_text(self, element):
         try:
@@ -169,7 +200,6 @@ class TailwindScraper(BaseScraper):
                 
                 events.append({
                     "date": date,
-                    "type": "ngay_thuc_te",
                     "description": description,
                     "location": location
                 })
@@ -178,7 +208,7 @@ class TailwindScraper(BaseScraper):
         return events
         
     def _find_event(self, events, description_keyword, location_keyword):
-        if not location_keyword:
+        if not events or not location_keyword:
             return {}
         
         for event in events:

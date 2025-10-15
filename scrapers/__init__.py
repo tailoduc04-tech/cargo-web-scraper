@@ -25,7 +25,7 @@ SCRAPERS = {
     "SNK": SinokorScraper,
     "UNIFEEDER": UnifeederScraper,
     "HEUNG-A": HeungALineScraper,
-    "tailwind": TailwindScraper,
+    "Tailwind": TailwindScraper,
     #"hmm": HmmScraper,
     "kmtc": KmtcScraper,
     "sitc": SitcScraper,

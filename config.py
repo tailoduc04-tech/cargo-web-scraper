@@ -61,7 +61,7 @@ SCRAPER_CONFIGS = {
     "HEUNG-A": {
         "url": "https://ebiz.heungaline.com/BLDetail?blno="
      },
-    "tailwind": {
+    "Tailwind": {
         "url": "https://tailwind-shipping.com/en/home"
      },
     #"hmm": {
