@@ -75,5 +75,8 @@ SCRAPER_CONFIGS = {
     },
     "GOLSTAR": {
         "url": "https://www.goldstarline.com/tools/track_shipment"
+    },
+    "YML": {
+        "url": "https://e-solution.yangming.com/e-service/track_trace/track_trace_cargo_tracking.aspx"
     }
 }
