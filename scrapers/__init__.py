@@ -18,7 +18,7 @@ SCRAPERS = {
     "IAL": InterasiaScraper,
     #"cma_cgm": CmaCgmScraper,
     "MSK": MaerskScraper,
-    "msc": MscScraper,
+    "MSC": MscScraper,
     "CSL": CordeliaScraper,
     #"zim": ZimScraper,
     "PIL": PilScraper,

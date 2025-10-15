@@ -37,7 +37,7 @@ SCRAPER_CONFIGS = {
     "MSK": {
         "url": "https://www.maersk.com/tracking/",
     },
-    "msc": {
+    "MSC": {
         "url": "https://www.msc.com/en/track-a-shipment",
     },
     "CSL": {
