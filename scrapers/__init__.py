@@ -28,7 +28,7 @@ SCRAPERS = {
     "Tailwind": TailwindScraper,
     #"hmm": HmmScraper,
     "KMTC": KmtcScraper,
-    "sitc": SitcScraper,
+    "SITC": SitcScraper,
     "goldstar": GoldstarScraper
 }
 

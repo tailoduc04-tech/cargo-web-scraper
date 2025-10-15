@@ -70,7 +70,7 @@ SCRAPER_CONFIGS = {
     "KMTC": {
         "url": "https://www.ekmtc.com/index.html#/cargo-tracking"
     },
-    "sitc": {
+    "SITC": {
         "url": "https://ebusiness.sitcline.com/#/topMenu/cargoTrack"
     },
     "goldstar": {
