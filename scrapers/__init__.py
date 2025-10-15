@@ -15,7 +15,7 @@ from .sitc_scraper import SitcScraper
 from .goldstar_scraper import GoldstarScraper
 
 SCRAPERS = {
-    "interasia": InterasiaScraper,
+    "IAL": InterasiaScraper,
     #"cma_cgm": CmaCgmScraper,
     "maersk": MaerskScraper,
     "msc": MscScraper,

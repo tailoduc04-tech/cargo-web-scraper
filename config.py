@@ -27,7 +27,7 @@ else:
 
 # --- Cấu hình Scraper ---
 SCRAPER_CONFIGS = {
-    "interasia": {
+    "IAL": {
         "url": "https://www.interasia.cc/Service/Form?servicetype=0",
     },
     # CMA CGM gắt quá không lấy được data
