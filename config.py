@@ -52,7 +52,7 @@ SCRAPER_CONFIGS = {
     "PIL": {
         "url": "https://www.pilship.com/digital-solutions/?tab=customer&id=track-trace&label=containerTandT&module=TrackTraceJob&refNo=<BL_NUMBER>",
     },
-    "sinokor": {
+    "SNK": {
         "url": "https://ebiz.sinokor.co.kr/BLDetail?blno=",
     },
     "unifeeder": {

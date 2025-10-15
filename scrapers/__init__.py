@@ -22,7 +22,7 @@ SCRAPERS = {
     "CSL": CordeliaScraper,
     #"zim": ZimScraper,
     "PIL": PilScraper,
-    "sinokor": SinokorScraper,
+    "SNK": SinokorScraper,
     "unifeeder": UnifeederScraper,
     "heungaline": HeungALineScraper,
     "tailwind": TailwindScraper,
