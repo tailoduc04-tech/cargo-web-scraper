@@ -29,7 +29,7 @@ SCRAPERS = {
     #"hmm": HmmScraper,
     "KMTC": KmtcScraper,
     "SITC": SitcScraper,
-    "goldstar": GoldstarScraper
+    "GOLSTAR": GoldstarScraper
 }
 
 def get_scraper(name, driver, config):
