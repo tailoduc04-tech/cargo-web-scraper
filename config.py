@@ -34,7 +34,7 @@ SCRAPER_CONFIGS = {
     #"cma_cgm": {
     #    "url": "https://www.cma-cgm.com/ebusiness/tracking",
     #},
-    "maersk": {
+    "MSK": {
         "url": "https://www.maersk.com/tracking/",
     },
     "msc": {

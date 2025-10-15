@@ -17,7 +17,7 @@ from .goldstar_scraper import GoldstarScraper
 SCRAPERS = {
     "IAL": InterasiaScraper,
     #"cma_cgm": CmaCgmScraper,
-    "maersk": MaerskScraper,
+    "MSK": MaerskScraper,
     "msc": MscScraper,
     "CSL": CordeliaScraper,
     #"zim": ZimScraper,
