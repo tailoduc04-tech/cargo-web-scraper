@@ -40,7 +40,7 @@ SCRAPER_CONFIGS = {
     "msc": {
         "url": "https://www.msc.com/en/track-a-shipment",
     },
-    "cordelia": {
+    "CSL": {
         "url": "https://cordelialine.com/bltracking/?blno=",
     },
     #"zim": {

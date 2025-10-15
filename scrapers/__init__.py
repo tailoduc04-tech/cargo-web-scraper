@@ -19,7 +19,7 @@ SCRAPERS = {
     #"cma_cgm": CmaCgmScraper,
     "maersk": MaerskScraper,
     "msc": MscScraper,
-    "cordelia": CordeliaScraper,
+    "CSL": CordeliaScraper,
     #"zim": ZimScraper,
     "pil": PilScraper,
     "sinokor": SinokorScraper,
