@@ -49,7 +49,7 @@ SCRAPER_CONFIGS = {
     #        "tracking_info": "zim_tracking_info.csv"
     #    }
     #},
-    "pil": {
+    "PIL": {
         "url": "https://www.pilship.com/digital-solutions/?tab=customer&id=track-trace&label=containerTandT&module=TrackTraceJob&refNo=<BL_NUMBER>",
     },
     "sinokor": {

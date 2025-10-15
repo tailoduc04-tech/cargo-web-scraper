@@ -21,7 +21,7 @@ SCRAPERS = {
     "msc": MscScraper,
     "CSL": CordeliaScraper,
     #"zim": ZimScraper,
-    "pil": PilScraper,
+    "PIL": PilScraper,
     "sinokor": SinokorScraper,
     "unifeeder": UnifeederScraper,
     "heungaline": HeungALineScraper,

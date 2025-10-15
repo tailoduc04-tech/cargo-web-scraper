@@ -15,78 +15,53 @@ class PilScraper(BaseScraper):
     và chuẩn hóa kết quả đầu ra theo định dạng JSON yêu cầu.
     """
 
-    def _parse_date(self, date_str):
-        """Hàm trợ giúp để chuyển đổi chuỗi ngày tháng thành đối tượng datetime."""
+    def _format_pil_date(self, date_str):
+        """
+        Hàm trợ giúp để chuyển đổi chuỗi ngày tháng từ 'DD-Mon-YYYY' sang 'DD/MM/YYYY'.
+        """
         if not date_str:
             return None
         try:
-            # Thử định dạng 'DD-Mon-YYYY', ví dụ: '03-Sep-2025'
-            return datetime.strptime(date_str, '%d-%b-%Y')
+            # Tách phần ngày ra khỏi chuỗi có cả thời gian
+            date_part = date_str.split(" ")[0]
+            # Chuyển đổi từ định dạng 'DD-Mon-YYYY'
+            dt_obj = datetime.strptime(date_part, '%d-%b-%Y')
+            # Format lại thành 'DD/MM/YYYY'
+            return dt_obj.strftime('%d/%m/%Y')
         except ValueError:
-            # Thử định dạng khác có cả thời gian
-            try:
-                return datetime.strptime(date_str, '%d-%b-%Y %H:%M:%S')
-            except ValueError:
-                print(f"[LOG] Không thể phân tích định dạng ngày: {date_str}")
-                return None
+            print(f"[LOG] Không thể phân tích định dạng ngày: {date_str}")
+            return date_str # Trả về chuỗi gốc nếu không parse được
 
     def scrape(self, tracking_number):
+        """
+        Scrape dữ liệu cho một mã B/L hoặc Booking từ trang web PIL.
+        """
         print(f"\n--- [PIL Scraper] Bắt đầu scrape cho mã: {tracking_number} ---")
         try:
+            # Thay thế placeholder bằng tracking_number thực tế
             url = self.config['url'].replace('<BL_NUMBER>', tracking_number)
             print(f"[LOG] Đang truy cập URL: {url}")
             self.driver.get(url)
-            self.wait = WebDriverWait(self.driver, 30)
+            self.wait = WebDriverWait(self.driver, 45)
 
             print("[LOG] Chờ trang kết quả tải...")
             self.wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR, ".results-wrapper .mypil-table")))
             print("[LOG] Trang kết quả đã tải thành công.")
-            time.sleep(2)
+            time.sleep(2) # Chờ để đảm bảo tất cả các element được render ổn định
 
-            # --- 1. Trích xuất thông tin chung ---
+            # --- 1. Trích xuất thông tin tóm tắt ---
             print("[LOG] Bắt đầu trích xuất thông tin tóm tắt...")
             summary_data = self._extract_summary_data()
             pol = summary_data.get("POL")
             pod = summary_data.get("POD")
             print(f"[LOG] Thông tin tóm tắt: POL={pol}, POD={pod}, ETD={summary_data.get('ETD')}, ETA={summary_data.get('ETA')}")
-            
+
             # --- 2. Mở rộng tất cả chi tiết container ---
-            main_container_tbodys = self.driver.find_elements(By.XPATH, "//tbody[not(contains(@class, 'sub-info-table')) and .//b[@class='cont-numb']]")
-            print(f"[LOG] Tìm thấy {len(main_container_tbodys)} khối thông tin container.")
-            
-            for i, main_tbody in enumerate(main_container_tbodys):
-                try:
-                    button = main_tbody.find_element(By.CSS_SELECTOR, "a.trackinfo")
-                    self.driver.execute_script("arguments[0].click();", button)
-                    print(f"[LOG] Đã nhấp vào nút Trace #{i+1}.")
-                    # Chờ cho bảng lịch sử bên trong xuất hiện
-                    history_tbody = main_tbody.find_element(By.XPATH, "./following-sibling::tbody[1]")
-                    WebDriverWait(self.driver, 10).until(
-                        EC.visibility_of_element_located((By.CSS_SELECTOR, "tbody.sub-info-table"))
-                    )
-                except Exception as e:
-                    print(f"[LỖI] Không thể nhấp và chờ nút trace: {e}")
+            self._expand_all_container_details()
 
             # --- 3. Thu thập lịch sử từ tất cả các container ---
             print("[LOG] Bắt đầu thu thập lịch sử chi tiết của các container...")
-            all_events = []
-            
-            # Lấy lại danh sách container sau khi đã mở rộng tất cả
-            main_container_tbodys = self.driver.find_elements(By.XPATH, "//tbody[not(contains(@class, 'sub-info-table')) and .//b[@class='cont-numb']]")
-            
-            for main_tbody in main_container_tbodys:
-                try:
-                    container_no = main_tbody.find_element(By.CLASS_NAME, "cont-numb").text
-                    print(f"[LOG] Đang xử lý container: {container_no}")
-                    history_tbody = main_tbody.find_element(By.XPATH, "./following-sibling::tbody[1]")
-                    assert history_tbody is not None, "history_tbody is None"
-                    events = self._extract_container_events(history_tbody, container_no)
-                    print(f"[LOG]   -> Tìm thấy {len(events)} sự kiện cho container {container_no}.")
-                    all_events.extend(events)
-                except NoSuchElementException:
-                    print(f"[CẢNH BÁO] Bỏ qua một tbody không có cấu trúc container mong đợi.")
-                    continue
-            
+            all_events = self._gather_all_container_events()
             print(f"[LOG] Tổng cộng đã thu thập được {len(all_events)} sự kiện.")
 
             # --- 4. Xác định ngày thực tế và cảng trung chuyển từ lịch sử ---
@@ -101,53 +76,40 @@ class PilScraper(BaseScraper):
                 if "discharge" in description and location and pol not in location and pod not in location:
                     if location not in transit_ports:
                         transit_ports.append(location)
+            
             print(f"[LOG] Cảng trung chuyển được xác định: {transit_ports}")
+            
+            # Tìm sự kiện tại cảng trung chuyển
+            ata_transit_event = None
+            atd_transit_event = None
+            if transit_ports:
+                # Lấy ngày đến thực tế tại cảng trung chuyển đầu tiên
+                ata_transit_event = self._find_event(all_events, "Vessel Discharge", transit_ports[0])
+                # Lấy ngày đi thực tế từ cảng trung chuyển cuối cùng
+                atd_transit_event = self._find_event(all_events, "Vessel Loading", transit_ports[-1])
 
-            # --- 5. Chuẩn hóa dữ liệu theo định dạng yêu cầu ---
+
+            # --- 5. Chuẩn hóa dữ liệu theo định dạng JSON yêu cầu ---
             print("[LOG] Bắt đầu chuẩn hóa dữ liệu đầu ra...")
-            departure_date_obj = self._parse_date(summary_data.get("ETD"))
-            arrival_date_obj = self._parse_date(summary_data.get("ETA"))
-            now = datetime.now()
-
-            ngay_di_du_kien = None
-            ngay_di_thuc_te = actual_departure_event.get('date') if actual_departure_event else None
-
-            if departure_date_obj:
-                if departure_date_obj < now and not ngay_di_thuc_te:
-                    ngay_di_thuc_te = summary_data.get("ETD")
-                elif not ngay_di_thuc_te:
-                    ngay_di_du_kien = summary_data.get("ETD")
-
-            ngay_den_du_kien = None
-            ngay_den_thuc_te = actual_arrival_event.get('date') if actual_arrival_event else None
-
-            if arrival_date_obj:
-                if arrival_date_obj < now and not ngay_den_thuc_te:
-                    ngay_den_thuc_te = summary_data.get("ETA")
-                elif not ngay_den_thuc_te:
-                    ngay_den_du_kien = summary_data.get("ETA")
-
             normalized_data = {
-                "POL": pol,
-                "POD": pod,
-                "transit_port": ", ".join(transit_ports) if transit_ports else None,
-                "ngay_tau_di": {
-                    "ngay_du_kien": ngay_di_du_kien,
-                    "ngay_thuc_te": ngay_di_thuc_te
-                },
-                "ngay_tau_den": {
-                    "ngay_du_kien": ngay_den_du_kien,
-                    "ngay_thuc_te": ngay_den_thuc_te
-                },
-                "lich_su": all_events
+                "BookingNo": tracking_number,
+                "BlNumber": tracking_number,
+                "BookingStatus": None, # Không có thông tin này trên trang
+                "Pol": pol,
+                "Pod": pod,
+                "Etd": self._format_pil_date(summary_data.get("ETD")),
+                "Atd": self._format_pil_date(actual_departure_event.get("date")) if actual_departure_event else None,
+                "Eta": self._format_pil_date(summary_data.get("ETA")),
+                "Ata": self._format_pil_date(actual_arrival_event.get("date")) if actual_arrival_event else None,
+                "TransitPort": ", ".join(transit_ports) if transit_ports else None,
+                "EtdTransit": None, # Không có thông tin
+                "AtdTrasit": self._format_pil_date(atd_transit_event.get("date")) if atd_transit_event else None,
+                "EtaTransit": None, # Không có thông tin
+                "AtaTrasit": self._format_pil_date(ata_transit_event.get("date")) if ata_transit_event else None,
             }
             print("[LOG] Đã chuẩn hóa dữ liệu thành công.")
-            
-            results_df = pd.DataFrame([normalized_data])
-            results = {"tracking_info": results_df}
-            
-            print(f"--- [PIL Scraper] Hoàn thành scrape cho mã: {tracking_number} ---")
-            return results, None
+
+            return normalized_data, None
 
         except TimeoutException:
             print(f"[LỖI] TimeoutException xảy ra cho mã '{tracking_number}'.")
@@ -169,15 +131,18 @@ class PilScraper(BaseScraper):
         summary_table = self.wait.until(EC.presence_of_element_located((By.XPATH, "//div[@class='mypil-table']/table/tbody")))
         data = {}
         try:
+            # Lấy POL
             location_text = summary_table.find_element(By.CSS_SELECTOR, "td.location").text
             lines = [line.strip() for line in location_text.split('\n') if line.strip()]
             data['POL'] = lines[1].split(',')[0] if len(lines) > 1 else None
 
+            # Lấy POD và ETA
             next_location_text = summary_table.find_element(By.CSS_SELECTOR, "td.next-location").text
             lines = [line.strip() for line in next_location_text.split('\n') if line.strip()]
             data['POD'] = lines[0].split(',')[0] if len(lines) > 0 else None
             data['ETA'] = lines[1] if len(lines) > 1 else None
 
+            # Lấy ETD
             arrival_delivery_text = summary_table.find_element(By.CSS_SELECTOR, "td.arrival-delivery").text
             lines = [line.strip() for line in arrival_delivery_text.split('\n') if line.strip()]
             data['ETD'] = lines[1] if len(lines) > 1 else None
@@ -185,25 +150,60 @@ class PilScraper(BaseScraper):
             print(f"[LỖI] Không thể trích xuất dữ liệu tóm tắt: {e}")
         return data
 
+    def _expand_all_container_details(self):
+        """Tìm và nhấp vào tất cả các nút 'Trace' để hiển thị lịch sử chi tiết."""
+        print("[LOG] Bắt đầu mở rộng tất cả chi tiết container...")
+        main_container_tbodys = self.driver.find_elements(By.XPATH, "//tbody[not(contains(@class, 'sub-info-table')) and .//b[@class='cont-numb']]")
+        print(f"[LOG] Tìm thấy {len(main_container_tbodys)} khối thông tin container.")
+        
+        for i, main_tbody in enumerate(main_container_tbodys):
+            try:
+                button = main_tbody.find_element(By.CSS_SELECTOR, "a.trackinfo")
+                self.driver.execute_script("arguments[0].click();", button)
+                print(f"[LOG] Đã nhấp vào nút Trace #{i+1}.")
+                # Chờ cho bảng lịch sử bên trong (là tbody ngay sau tbody hiện tại) xuất hiện
+                history_tbody = main_tbody.find_element(By.XPATH, "./following-sibling::tbody[1]")
+                WebDriverWait(self.driver, 15).until(
+                    lambda d: 'hidden' not in history_tbody.get_attribute('class')
+                )
+            except Exception as e:
+                print(f"[LỖI] Không thể nhấp và chờ nút trace #{i+1}: {e}")
+        print("[LOG] Đã mở rộng tất cả các chi tiết container.")
+
+
+    def _gather_all_container_events(self):
+        """Thu thập sự kiện từ tất cả các container đã được mở rộng."""
+        all_events = []
+        main_container_tbodys = self.driver.find_elements(By.XPATH, "//tbody[not(contains(@class, 'sub-info-table')) and .//b[@class='cont-numb']]")
+        
+        for main_tbody in main_container_tbodys:
+            try:
+                container_no = main_tbody.find_element(By.CLASS_NAME, "cont-numb").text
+                print(f"[LOG] Đang xử lý container: {container_no}")
+                # Bảng lịch sử là tbody ngay sau tbody chính
+                history_tbody = main_tbody.find_element(By.XPATH, "./following-sibling::tbody[1]")
+                events = self._extract_container_events(history_tbody, container_no)
+                print(f"[LOG]   -> Tìm thấy {len(events)} sự kiện cho container {container_no}.")
+                all_events.extend(events)
+            except NoSuchElementException:
+                print(f"[CẢNH BÁO] Bỏ qua một tbody không có cấu trúc container mong đợi.")
+                continue
+        return all_events
+
+
     def _extract_container_events(self, history_tbody, container_no):
-        """Trích xuất lịch sử sự kiện cho một container cụ thể."""
+        """Trích xuất lịch sử sự kiện cho một container cụ thể từ tbody của nó."""
         events = []
         try:
-            # Sửa selector: Tìm tất cả các thẻ <tr> bên trong history_tbody
             rows = history_tbody.find_elements(By.TAG_NAME, "tr")
-            
             for row in rows:
-                # Bỏ qua dòng tiêu đề, dòng này thường có class 'text-fw-bold'
                 if "text-fw-bold" in row.get_attribute("class"):
                     continue
-                    
                 cells = row.find_elements(By.TAG_NAME, "td")
-                # Dòng dữ liệu sự kiện có 6 cột, cột đầu tiên trống
-                if len(cells) >= 6: 
+                if len(cells) >= 6:
                     event_date_time = cells[3].text.strip().split(" ")[0]
                     event_name = cells[4].text.strip()
                     event_location = cells[5].text.strip().split(',')[0]
-
                     events.append({
                         "container_no": container_no,
                         "date": event_date_time,
