@@ -67,7 +67,7 @@ SCRAPER_CONFIGS = {
     #"hmm": {
     #   "url": "https://www.hmm21.com/e-service/general/trackNTrace/TrackNTrace.do"
     #}
-    "kmtc": {
+    "KMTC": {
         "url": "https://www.ekmtc.com/index.html#/cargo-tracking"
     },
     "sitc": {
