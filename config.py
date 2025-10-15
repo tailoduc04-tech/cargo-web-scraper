@@ -55,10 +55,10 @@ SCRAPER_CONFIGS = {
     "SNK": {
         "url": "https://ebiz.sinokor.co.kr/BLDetail?blno=",
     },
-    "unifeeder": {
+    "UNIFEEDER": {
         "url": "https://www.unifeeder.cargoes.com/tracking?ID=",
     },
-    "heungaline": {
+    "HEUNG-A": {
         "url": "https://ebiz.heungaline.com/BLDetail?blno="
      },
     "tailwind": {
