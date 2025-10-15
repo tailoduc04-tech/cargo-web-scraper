@@ -63,6 +63,7 @@ class OneScraper(BaseScraper):
                     self.driver.execute_script("arguments[0].click();", button)
                     print(f"[ONE Scraper] -> Đã nhấn nút mở rộng #{i+1}")
                     time.sleep(1) # Chờ một chút cho animation
+                    break
                 except Exception as e:
                     print(f"[ONE Scraper] Cảnh báo: Không thể nhấn nút mở rộng #{i+1}: {e}")
 
