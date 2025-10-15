@@ -78,5 +78,8 @@ SCRAPER_CONFIGS = {
     },
     "YML": {
         "url": "https://e-solution.yangming.com/e-service/track_trace/track_trace_cargo_tracking.aspx"
+    },
+    "ONE": {
+        "url": "https://ecomm.one-line.com/one-ecom/manage-shipment/cargo-tracking?trakNoParam="
     }
 }
