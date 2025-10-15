@@ -53,7 +53,7 @@ class OneScraper(BaseScraper):
             # 2. Tìm và nhấn vào tất cả các nút mũi tên để mở rộng chi tiết
             print("[ONE Scraper] -> Tìm và nhấn các nút mở rộng chi tiết...")
             # Selector này nhắm vào icon mũi tên bên trong mỗi hàng
-            expand_buttons = self.driver.find_elements(By.CSS_SELECTOR, "div.Table_tr__oVzeh div.TableColumn_checkbox-icon-booking__yGLmw")
+            expand_buttons = self.driver.find_elements(By.CSS_SELECTOR, "div.relative.cursor-pointer")
             if not expand_buttons:
                 print("[ONE Scraper] Cảnh báo: Không tìm thấy nút mở rộng nào.")
             
