@@ -95,11 +95,11 @@ class CordeliaScraper(BaseScraper):
                 "Atd": sob_date,
                 "Eta": eta_fpod,
                 "Ata": None,  # Thời gian đến thực tế không được cung cấp
-                "EtdTransit": None, # Không có
-                "AtdTrasit": None, # Không có
                 "TransitPort": transit_port,
+                "EtdTransit": None, # Không có
+                "AtdTransit": None, # Không có
                 "EtaTransit": None, # Không có
-                "AtaTrasit": None # Không có
+                "AtaTransit": None # Không có
             }
             
             return shipment_data

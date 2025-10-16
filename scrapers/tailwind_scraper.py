@@ -173,9 +173,9 @@ class TailwindScraper(BaseScraper):
             "Atd": self._format_date(atd),
             "Eta": self._format_date(eta_raw),
             "Ata": self._format_date(ata),
+            "TransitPort": ", ".join(transit_ports) if transit_ports else None,
             "EtdTransit": None,
             "AtdTrasit": self._format_date(atd_transit),
-            "TransitPort": ", ".join(transit_ports) if transit_ports else None,
             "EtaTransit": None,
             "AtaTrasit": self._format_date(ata_transit)
         }

@@ -81,5 +81,8 @@ SCRAPER_CONFIGS = {
     },
     "ONE": {
         "url": "https://ecomm.one-line.com/one-ecom/manage-shipment/cargo-tracking?trakNoParam="
+    },
+    "COSCO": {
+        "url": "https://elines.coscoshipping.com/ebusiness/cargotracking"
     }
 }

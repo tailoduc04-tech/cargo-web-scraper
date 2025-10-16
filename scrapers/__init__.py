@@ -15,6 +15,7 @@ from .sitc_scraper import SitcScraper
 from .goldstar_scraper import GoldstarScraper
 from .yangming_scraper import YangmingScraper
 from .one_scraper import OneScraper
+from .cosco_scraper import CoscoScraper
 
 SCRAPERS = {
     "IAL": InterasiaScraper,
@@ -33,7 +34,8 @@ SCRAPERS = {
     "SITC": SitcScraper,
     "GOLSTAR": GoldstarScraper,
     "YML": YangmingScraper,
-    "ONE": OneScraper
+    "ONE": OneScraper,
+    "COSCO": CoscoScraper
 }
 
 def get_scraper(name, driver, config):

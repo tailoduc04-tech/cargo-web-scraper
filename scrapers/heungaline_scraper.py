@@ -117,9 +117,9 @@ class HeungALineScraper(BaseScraper):
             "Atd": self._format_date(actual_departure.get('date')) if actual_departure else None,
             "Eta": self._format_date(eta),
             "Ata": self._format_date(actual_arrival.get('date')) if actual_arrival else None,
+            "TransitPort": ", ".join(transit_ports) if transit_ports else None,
             "EtdTransit": None,
             "AtdTrasit": self._format_date(atd_transit_event.get('date')) if atd_transit_event else None,
-            "TransitPort": ", ".join(transit_ports) if transit_ports else None,
             "EtaTransit": None,
             "AtaTrasit": self._format_date(ata_transit_event.get('date')) if ata_transit_event else None
         }

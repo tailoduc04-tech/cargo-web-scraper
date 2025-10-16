@@ -153,9 +153,9 @@ class GoldstarScraper(BaseScraper):
                 "Atd": self._format_date(actual_departure.get('date')) if actual_departure else None,
                 "Eta": self._format_date(eta),
                 "Ata": self._format_date(actual_arrival.get('date')) if actual_arrival else None,
+                "TransitPort": ", ".join(transit_ports) if transit_ports else None,
                 "EtdTransit": None, # Không có thông tin
                 "AtdTrasit": self._format_date(transit_load_events[-1].get('date')) if transit_load_events else None,
-                "TransitPort": ", ".join(transit_ports) if transit_ports else None,
                 "EtaTransit": None, # Không có thông tin
                 "AtaTrasit": self._format_date(transit_discharge_events[0].get('date')) if transit_discharge_events else None,
             }

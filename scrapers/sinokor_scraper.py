@@ -118,9 +118,9 @@ class SinokorScraper(BaseScraper):
             "Atd": self._format_date(actual_departure.get('date')) if actual_departure else None,
             "Eta": self._format_date(eta),
             "Ata": self._format_date(actual_arrival.get('date')) if actual_arrival else None,
+            "TransitPort": ", ".join(transit_ports) if transit_ports else None,
             "EtdTransit": None, # Logic phức tạp hơn nếu có nhiều cảng, tạm thời để None
             "AtdTrasit": None, # Logic phức tạp hơn nếu có nhiều cảng, tạm thời để None
-            "TransitPort": ", ".join(transit_ports) if transit_ports else None,
             "EtaTransit": None, # Logic phức tạp hơn nếu có nhiều cảng, tạm thời để None
             "AtaTrasit": None  # Logic phức tạp hơn nếu có nhiều cảng, tạm thời để None
         }

@@ -162,9 +162,9 @@ class SitcScraper(BaseScraper):
                 "Atd": self._format_date(atd),
                 "Eta": self._format_date(eta),
                 "Ata": self._format_date(ata),
+                "TransitPort": transit_port,
                 "EtdTransit": self._format_date(etd_transit),
                 "AtdTrasit": self._format_date(atd_transit),
-                "TransitPort": transit_port,
                 "EtaTransit": self._format_date(eta_transit),
                 "AtaTrasit": self._format_date(ata_transit)
             }

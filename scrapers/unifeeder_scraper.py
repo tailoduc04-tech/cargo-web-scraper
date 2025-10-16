@@ -110,10 +110,10 @@ class UnifeederScraper(BaseScraper):
                 "Eta": self._format_date(arrival_event.get('date')) if arrival_event and arrival_event.get('type') == 'ngay_du_kien' else None,
                 "Ata": self._format_date(arrival_event.get('date')) if arrival_event and arrival_event.get('type') == 'ngay_thuc_te' else None,
                 "TransitPort": ", ".join(transit_ports) if transit_ports else None,
-                "EtdTransit": None, # Không có thông tin
-                "AtdTrasit": self._format_date(ts_load_events[-1].get('date')) if ts_load_events else None, # Lấy sự kiện T/S load cuối cùng
-                "EtaTransit": None, # Không có thông tin
-                "AtaTrasit": self._format_date(ts_discharge_events[0].get('date')) if ts_discharge_events else None, # Lấy sự kiện T/S discharge đầu tiên
+                "EtdTransit": None,
+                "AtdTransit": self._format_date(ts_load_events[-1].get('date')) if ts_load_events else None, 
+                "EtaTransit": None,
+                "AtaTransit": self._format_date(ts_discharge_events[0].get('date')) if ts_discharge_events else None,
             }
             
             return shipment_data

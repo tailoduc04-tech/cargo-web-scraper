@@ -128,9 +128,9 @@ class InterasiaScraper(BaseScraper):
                 "Atd": self._format_date(actual_departure.get('date')),
                 "Eta": self._format_date(eta),
                 "Ata": self._format_date(actual_arrival.get('date')),
+                "TransitPort": ", ".join(transit_ports) if transit_ports else None,
                 "EtdTransit": None, # Không có thông tin
                 "AtdTrasit": self._format_date(transit_departure_events[-1].get('date')) if transit_departure_events else None,
-                "TransitPort": ", ".join(transit_ports) if transit_ports else None,
                 "EtaTransit": None, # Không có thông tin
                 "AtaTrasit": self._format_date(transit_arrival_events[0].get('date')) if transit_arrival_events else None,
             }

@@ -168,9 +168,9 @@ class OneScraper(BaseScraper):
                 "Atd": self._format_date(atd_raw),
                 "Eta": self._format_date(eta_raw),
                 "Ata": self._format_date(ata_event.get("date")) if ata_event else None,
+                "TransitPort": ", ".join(transit_ports) if transit_ports else None,
                 "EtdTransit": None,
                 "AtdTrasit": self._format_date(atd_transit_event.get("date")) if atd_transit_event else None,
-                "TransitPort": ", ".join(transit_ports) if transit_ports else None,
                 "EtaTransit": None,
                 "AtaTrasit": self._format_date(ata_transit_event.get("date")) if ata_transit_event else None
             }
