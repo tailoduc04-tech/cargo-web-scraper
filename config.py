@@ -87,5 +87,8 @@ SCRAPER_CONFIGS = {
     },
     "EMC": {
         "url": "https://ct.shipmentlink.com/servlet/TDB1_CargoTracking.do"
+    },
+    "OSL": {
+        "url": "https://star-liners.com/track-my-shipment/"
     }
 }
