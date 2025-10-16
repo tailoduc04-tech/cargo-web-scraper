@@ -84,5 +84,8 @@ SCRAPER_CONFIGS = {
     },
     "COSCO": {
         "url": "https://elines.coscoshipping.com/ebusiness/cargotracking"
+    },
+    "EMC": {
+        "url": "https://ct.shipmentlink.com/servlet/TDB1_CargoTracking.do"
     }
 }
