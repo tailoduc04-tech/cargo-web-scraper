@@ -93,5 +93,8 @@ SCRAPER_CONFIGS = {
     },
     "PAN": {
         "url": "http://www.shippingline.org/track/?type=bill&container={BL_NUMBER}&line=pancont&track=Track+container"
+    },
+    "SEALEAD": {
+        "url": "https://www.sea-lead.com/track-shipment/"
     }
 }
