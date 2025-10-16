@@ -18,6 +18,7 @@ from .one_scraper import OneScraper
 from .cosco_scraper import CoscoScraper
 from .emc_scraper import EmcScraper
 from .osl_scraper import OslScraper
+from .pan_scraper import PanScraper
 
 SCRAPERS = {
     "IAL": InterasiaScraper,
@@ -39,7 +40,8 @@ SCRAPERS = {
     "ONE": OneScraper,
     "COSCO": CoscoScraper,
     "EMC": EmcScraper,
-    "OSL": OslScraper
+    "OSL": OslScraper,
+    "PAN": PanScraper
 }
 
 def get_scraper(name, driver, config):

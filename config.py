@@ -90,5 +90,8 @@ SCRAPER_CONFIGS = {
     },
     "OSL": {
         "url": "https://star-liners.com/track-my-shipment/"
+    },
+    "PAN": {
+        "url": "http://www.shippingline.org/track/?type=bill&container={BL_NUMBER}&line=pancont&track=Track+container"
     }
 }
