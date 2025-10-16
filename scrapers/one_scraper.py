@@ -38,7 +38,7 @@ class OneScraper(BaseScraper):
         print(f"[ONE Scraper] Bắt đầu scrape cho mã: {tracking_number}")
         try:
             # Xây dựng URL trực tiếp từ cấu hình và tracking number
-            direct_url = f'{self.config['url']}{tracking_number}'
+            direct_url = f"{self.config['url']}{tracking_number}"
             print(f"[ONE Scraper] -> Đang truy cập URL: {direct_url}")
             self.driver.get(direct_url)
             self.wait = WebDriverWait(self.driver, 45)
