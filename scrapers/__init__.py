@@ -20,6 +20,7 @@ from .emc_scraper import EmcScraper
 from .osl_scraper import OslScraper
 from .pan_scraper import PanScraper
 from .sealead_scraper import SealeadScraper
+from .transliner_scraper import TranslinerScraper
 
 SCRAPERS = {
     "IAL": InterasiaScraper,
@@ -43,7 +44,8 @@ SCRAPERS = {
     "EMC": EmcScraper,
     "OSL": OslScraper,
     "PAN": PanScraper,
-    "SEALEAD": SealeadScraper
+    "SEALEAD": SealeadScraper,
+    "TRANSLINER": TranslinerScraper
 }
 
 def get_scraper(name, driver, config):

@@ -96,5 +96,8 @@ SCRAPER_CONFIGS = {
     },
     "SEALEAD": {
         "url": "https://www.sea-lead.com/track-shipment/"
+    },
+    "TRANSLINER": {
+        "url": "https://translinergroup.track.tigris.systems/?ref="
     }
 }
