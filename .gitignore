@@ -208,3 +208,6 @@ __marimo__/
 
 # Project specific ignores
 ./output
+test_local.py
+res.json
+clean_html.py

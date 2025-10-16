@@ -27,20 +27,20 @@ else:
 
 # --- Cấu hình Scraper ---
 SCRAPER_CONFIGS = {
-    "interasia": {
+    "IAL": {
         "url": "https://www.interasia.cc/Service/Form?servicetype=0",
     },
     # CMA CGM gắt quá không lấy được data
     #"cma_cgm": {
     #    "url": "https://www.cma-cgm.com/ebusiness/tracking",
     #},
-    "maersk": {
+    "MSK": {
         "url": "https://www.maersk.com/tracking/",
     },
-    "msc": {
+    "MSC": {
         "url": "https://www.msc.com/en/track-a-shipment",
     },
-    "cordelia": {
+    "CSL": {
         "url": "https://cordelialine.com/bltracking/?blno=",
     },
     #"zim": {
@@ -49,31 +49,43 @@ SCRAPER_CONFIGS = {
     #        "tracking_info": "zim_tracking_info.csv"
     #    }
     #},
-    "pil": {
+    "PIL": {
         "url": "https://www.pilship.com/digital-solutions/?tab=customer&id=track-trace&label=containerTandT&module=TrackTraceJob&refNo=<BL_NUMBER>",
     },
-    "sinokor": {
+    "SNK": {
         "url": "https://ebiz.sinokor.co.kr/BLDetail?blno=",
     },
-    "unifeeder": {
+    "UNIFEEDER": {
         "url": "https://www.unifeeder.cargoes.com/tracking?ID=",
     },
-    "heungaline": {
+    "HEUNG-A": {
         "url": "https://ebiz.heungaline.com/BLDetail?blno="
      },
-    "tailwind": {
+    "Tailwind": {
         "url": "https://tailwind-shipping.com/en/home"
      },
     #"hmm": {
     #   "url": "https://www.hmm21.com/e-service/general/trackNTrace/TrackNTrace.do"
     #}
-    "kmtc": {
+    "KMTC": {
         "url": "https://www.ekmtc.com/index.html#/cargo-tracking"
     },
-    "sitc": {
+    "SITC": {
         "url": "https://ebusiness.sitcline.com/#/topMenu/cargoTrack"
     },
-    "goldstar": {
+    "GOLSTAR": {
         "url": "https://www.goldstarline.com/tools/track_shipment"
+    },
+    "YML": {
+        "url": "https://e-solution.yangming.com/e-service/track_trace/track_trace_cargo_tracking.aspx"
+    },
+    "ONE": {
+        "url": "https://ecomm.one-line.com/one-ecom/manage-shipment/cargo-tracking?trakNoParam="
+    },
+    "COSCO": {
+        "url": "https://elines.coscoshipping.com/ebusiness/cargotracking"
+    },
+    "EMC": {
+        "url": "https://ct.shipmentlink.com/servlet/TDB1_CargoTracking.do"
     }
 }

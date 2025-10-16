@@ -12,8 +12,25 @@ from .base_scraper import BaseScraper
 class KmtcScraper(BaseScraper):
     """
     Triển khai logic scraping cụ thể cho trang web eKMTC,
-    tập trung vào việc trích xuất dữ liệu từ bảng tóm tắt và biểu đồ tiến trình.
+    và chuẩn hóa kết quả đầu ra theo template JSON yêu cầu.
     """
+
+    def _format_kmtc_date(self, date_str):
+        """
+        Chuyển đổi chuỗi ngày từ 'YYYY.MM.DD HH:mm' hoặc 'YYYY.MM.DD' sang 'DD/MM/YYYY'.
+        """
+        if not date_str or not isinstance(date_str, str):
+            return None
+        try:
+            # Tách phần ngày ra khỏi chuỗi có cả thời gian
+            date_part = date_str.split(' ')[0]
+            # Chuyển đổi từ định dạng 'YYYY.MM.DD'
+            dt_obj = datetime.strptime(date_part, '%Y.%m.%d')
+            # Format lại thành 'DD/MM/YYYY'
+            return dt_obj.strftime('%d/%m/%Y')
+        except ValueError:
+            print(f"[LOG] Không thể phân tích định dạng ngày: {date_str}")
+            return date_str # Trả về chuỗi gốc nếu không parse được
 
     def scrape(self, tracking_number):
         print(f"[KMTC Scraper] Bắt đầu scrape cho mã: {tracking_number}")
@@ -37,28 +54,22 @@ class KmtcScraper(BaseScraper):
             time.sleep(1) 
 
             print("[KMTC Scraper] 4. Bắt đầu trích xuất và chuẩn hóa dữ liệu...")
-            normalized_data = self._extract_and_normalize_data()
+            normalized_data = self._extract_and_normalize_data(tracking_number)
 
             if not normalized_data:
                 print(f"[KMTC Scraper] Lỗi: Không thể trích xuất dữ liệu cho '{tracking_number}'.")
                 return None, f"Không thể trích xuất dữ liệu đã chuẩn hóa cho '{tracking_number}'."
 
-            print("[KMTC Scraper] 5. Đóng gói và trả về kết quả thành công.")
-            results_df = pd.DataFrame(normalized_data)
-            results = {
-                "tracking_info": results_df
-            }
-            return results, None
+            print("[KMTC Scraper] 5. Trả về kết quả thành công.")
+            return normalized_data, None
 
         except TimeoutException:
             print(f"[KMTC Scraper] Lỗi: TimeoutException xảy ra cho mã '{tracking_number}'.")
             try:
-                # Kiểm tra xem có thông báo lỗi "No Data" hay không
                 if self.driver.find_element(By.ID, "e-alert-message").is_displayed():
                     print(f"[KMTC Scraper] -> Phát hiện thông báo 'No Data'.")
                     return None, f"Không tìm thấy dữ liệu (No Data) cho mã '{tracking_number}' trên trang eKMTC."
             except NoSuchElementException:
-                # Nếu không có thông báo lỗi, đây là timeout thật
                 print(f"[KMTC Scraper] -> Không tìm thấy kết quả, có thể mã không hợp lệ hoặc trang web chậm.")
                 timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
                 screenshot_path = f"output/kmtc_timeout_{tracking_number}_{timestamp}.png"
@@ -73,104 +84,103 @@ class KmtcScraper(BaseScraper):
             traceback.print_exc()
             return None, f"Lỗi không xác định khi scrape '{tracking_number}': {e}"
 
-    def _extract_and_normalize_data(self):
+    def _extract_and_normalize_data(self, tracking_number):
         """
-        Trích xuất, xử lý và chuẩn hóa dữ liệu từ trang kết quả của eKMTC.
+        Trích xuất, xử lý và chuẩn hóa dữ liệu từ trang kết quả của eKMTC sang template JSON.
         """
         print("[KMTC Scraper] --- Bắt đầu _extract_and_normalize_data ---")
-        # 1. Trích xuất thông tin chung từ bảng tóm tắt
-        summary_table = self.wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "table.tbl_col")))
-        pol_raw = summary_table.find_element(By.CSS_SELECTOR, "tbody tr:first-child td:nth-child(6)").text
-        pod_raw = summary_table.find_element(By.CSS_SELECTOR, "tbody tr:first-child td:nth-child(7)").text
-        
-        pol = pol_raw.split('\n')[0].strip()
-        pod = pod_raw.split('(')[0].strip()
-        print(f"[KMTC Scraper] -> Đã trích xuất POL: '{pol}', POD: '{pod}'")
-
-        # 2. Lấy danh sách các container
-        container_links = self.driver.find_elements(By.CSS_SELECTOR, ".cntrNo_area")
-        print(f"[KMTC Scraper] -> Tìm thấy {len(container_links)} container trong bảng tóm tắt.")
-        all_shipments = []
-
-        for i in range(len(container_links)):
-            # Phải tìm lại element mỗi lần lặp để tránh StaleElementReferenceException
-            current_container_link = self.driver.find_elements(By.CSS_SELECTOR, ".cntrNo_area")[i]
-            container_no = current_container_link.text
-            print(f"\n[KMTC Scraper] -> Bắt đầu xử lý container #{i+1}: '{container_no}'")
+        try:
+            # --- 1. Trích xuất thông tin chung từ bảng tóm tắt ---
+            summary_table = self.wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "table.tbl_col tbody")))
             
-            if current_container_link.tag_name == 'a':
+            bl_no_cell = summary_table.find_element(By.CSS_SELECTOR, "tr:first-child td:first-child")
+            bl_number = bl_no_cell.text.split('\n')[0].strip()
+            booking_status = bl_no_cell.find_element(By.TAG_NAME, "span").text.strip()
+            booking_no = summary_table.find_element(By.CSS_SELECTOR, "tr:first-child td:nth-child(2)").text.strip()
+            
+            pol_raw = summary_table.find_element(By.CSS_SELECTOR, "tr:first-child td:nth-child(6)").text.strip()
+            pod_raw = summary_table.find_element(By.CSS_SELECTOR, "tr:first-child td:nth-child(7)").text.strip()
+
+            pol = pol_raw.split('\n')[0]
+            etd = pol_raw.split('\n')[1] if '\n' in pol_raw else None
+            pod = pod_raw.split('(')[0].strip()
+            eta = pod_raw.split('\n')[1] if '\n' in pod_raw else None
+            
+            print(f"[KMTC Scraper] -> Thông tin tóm tắt: POL='{pol}', POD='{pod}', ETD='{etd}', ETA='{eta}'")
+
+            # --- 2. Trích xuất lịch sử từ biểu đồ tiến trình ---
+            # Giả định dữ liệu từ container đầu tiên là đại diện cho lô hàng
+            container_links = self.driver.find_elements(By.CSS_SELECTOR, ".cntrNo_area")
+            if container_links and container_links[0].tag_name == 'a':
+                container_no = container_links[0].text
                 print(f"  -> Container '{container_no}' là một link, thực hiện click để cập nhật timeline...")
-                self.driver.execute_script("arguments[0].click();", current_container_link)
+                self.driver.execute_script("arguments[0].click();", container_links[0])
                 WebDriverWait(self.driver, 10).until(
                     EC.text_to_be_present_in_element((By.CSS_SELECTOR, ".location_detail_header .ship_num"), container_no)
                 )
-                print(f"  -> Timeline đã được cập nhật cho '{container_no}'.")
                 time.sleep(0.5)
-            else:
-                 print(f"  -> Container '{container_no}' không phải link, timeline mặc định đã đúng.")
 
-            # 3. Trích xuất lịch sử từ biểu đồ tiến trình
             events = self._extract_events_from_timeline()
             
-            # 4. Tìm các ngày và thông tin quan trọng
-            print(f"  -> Bắt đầu tìm kiếm các sự kiện quan trọng trong {len(events)} event đã trích xuất.")
+            # --- 3. Tìm các ngày thực tế và cảng trung chuyển từ lịch sử ---
             departure_event = self._find_event(events, "Loading", pol)
             arrival_event = self._find_event(events, "Discharging", pod)
+            
             transhipment_event = self._find_event(events, "Transhipment")
             transit_port = transhipment_event.get('location') if transhipment_event else None
+            ata_transit = transhipment_event.get('date') if transhipment_event else None
+            # ATD tại cảng transit khó xác định vì không có sự kiện tương ứng rõ ràng
+            atd_transit = None
 
-            # 5. Xây dựng đối tượng JSON chuẩn hóa
-            shipment_data = {
-                "container_no": container_no,
-                "POL": pol,
-                "POD": pod,
-                "transit_port": transit_port,
-                "ngay_tau_di": {
-                    "ngay_du_kien": None,
-                    "ngay_thuc_te": departure_event.get('date')
-                },
-                "ngay_tau_den": {
-                    "ngay_du_kien": None,
-                    "ngay_thuc_te": arrival_event.get('date')
-                },
-                "lich_su": events
+            # --- 4. Xây dựng đối tượng JSON cuối cùng ---
+            normalized_data = {
+                "BookingNo": booking_no or tracking_number,
+                "BlNumber": bl_number or tracking_number,
+                "BookingStatus": booking_status,
+                "Pol": pol,
+                "Pod": pod,
+                "Etd": self._format_kmtc_date(etd),
+                "Atd": self._format_kmtc_date(departure_event.get('date')),
+                "Eta": self._format_kmtc_date(eta),
+                "Ata": self._format_kmtc_date(arrival_event.get('date')),
+                "TransitPort": transit_port,
+                "EtdTransit": None,
+                "AtdTrasit": self._format_kmtc_date(atd_transit),
+                "EtaTransit": None,
+                "AtaTrasit": self._format_kmtc_date(ata_transit),
             }
-            all_shipments.append(shipment_data)
-            print(f"[KMTC Scraper] -> Hoàn tất xử lý container '{container_no}'.")
             
-        return all_shipments
+            print("[KMTC Scraper] --- Hoàn tất, đã chuẩn hóa dữ liệu ---")
+            return normalized_data
+
+        except Exception as e:
+            print(f"[KMTC Scraper] Lỗi trong quá trình trích xuất: {e}")
+            traceback.print_exc()
+            return None
+
 
     def _extract_events_from_timeline(self):
         """
         Trích xuất tất cả các sự kiện từ biểu đồ tiến trình 'Current Location'.
+        (Giữ nguyên logic từ code cũ vì nó đã hoạt động tốt)
         """
-        print("[KMTC Scraper] --- Bắt đầu _extract_events_from_timeline ---")
         events = []
-        timeline = self.wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "ul.location_detail")))
-        all_event_items = timeline.find_elements(By.TAG_NAME, "li")
-        print(f"  -> Tìm thấy tổng cộng {len(all_event_items)} mục <li> trong timeline.")
-        
-        for index, item in enumerate(all_event_items):
-            try:
+        try:
+            timeline = self.wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "ul.location_detail")))
+            all_event_items = timeline.find_elements(By.TAG_NAME, "li")
+            
+            for item in all_event_items:
                 item_class = item.get_attribute("class")
                 if "inactive" in item_class or not item.is_displayed():
-                    # print(f"  -> Bỏ qua mục #{index+1} vì inactive hoặc không hiển thị.")
                     continue
                 
-                print(f"  -> Đang xử lý mục event #{index+1}...")
                 sub_event = item.find_element(By.CSS_SELECTOR, ".ts_scroll div")
-                print(f"  -> Lấy được sub event")
                 p_tags = sub_event.find_elements(By.TAG_NAME, "p")
-                if len(p_tags) < 2:
-                    continue
+                if len(p_tags) < 2: continue
 
                 description = p_tags[0].text.replace('\n', ' ').strip()
-                print(f"  -> Lấy được description")
                 datetime_raw = p_tags[1].text.replace('\n', ' ').strip()
-                print(f"  -> Lấy được datetime")
-                
                 main_event_text = item.find_element(By.CSS_SELECTOR, ".txt").text.lower()
-                print(f"  -> Lấy được main_event_text")
                 location = None
 
                 if 'on board' in main_event_text:
@@ -179,36 +189,33 @@ class KmtcScraper(BaseScraper):
                     location = self.driver.find_element(By.CSS_SELECTOR, "table.tbl_col tbody tr:first-child td:nth-child(7)").text.split('(')[0].strip()
                 elif '(transhipped)' in main_event_text:
                     description = "Transhipment"
-                    location = sub_event.find_element(By.TAG_NAME, "p:first-child").text.replace('T/S', '').replace('\n', ' ').strip()
+                    # Location được lấy từ chính text của event
+                    location_text = p_tags[0].text
+                    location = location_text.replace('T/S', '').replace('\n', ' ').strip()
 
-                event_data = {
+                events.append({
                     "date": datetime_raw,
-                    "type": "ngay_thuc_te",
                     "description": description,
                     "location": location
-                }
-                events.append(event_data)
-                print(f"    -> Đã trích xuất: {event_data}")
-
-            except (NoSuchElementException, IndexError):
-                print(f"  -> Lỗi: Không thể xử lý mục event #{index+1} do cấu trúc HTML khác biệt.")
-                continue
-        print(f"[KMTC Scraper] --- Hoàn tất _extract_events_from_timeline, trích xuất được {len(events)} events ---")
+                })
+        except (NoSuchElementException, IndexError) as e:
+             print(f"  -> Lỗi khi xử lý timeline event: {e}")
         return events
 
     def _find_event(self, events, description_keyword, location_keyword=None):
-        """Tìm một sự kiện cụ thể trong danh sách."""
-        # print(f"  -> Tìm kiếm event với từ khóa '{description_keyword}' và địa điểm '{location_keyword}'...")
+        """
+        Tìm một sự kiện cụ thể trong danh sách.
+        (Giữ nguyên logic từ code cũ)
+        """
+        if not events: return {}
+        
         for event in events:
             desc_match = description_keyword.lower() in event.get("description", "").lower()
             
             if location_keyword:
                 loc_match = location_keyword.lower() in (event.get("location") or "").lower()
                 if desc_match and loc_match:
-                    # print(f"    -> Tìm thấy event khớp: {event}")
                     return event
             elif desc_match:
-                # print(f"    -> Tìm thấy event khớp: {event}")
                 return event
-        # print("    -> Không tìm thấy event nào khớp.")
         return {}

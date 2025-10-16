@@ -13,23 +13,31 @@ from .tailwind_scraper import TailwindScraper
 from .kmtc_scraper import KmtcScraper
 from .sitc_scraper import SitcScraper
 from .goldstar_scraper import GoldstarScraper
+from .yangming_scraper import YangmingScraper
+from .one_scraper import OneScraper
+from .cosco_scraper import CoscoScraper
+from .emc_scraper import EmcScraper
 
 SCRAPERS = {
-    "interasia": InterasiaScraper,
+    "IAL": InterasiaScraper,
     #"cma_cgm": CmaCgmScraper,
-    "maersk": MaerskScraper,
-    "msc": MscScraper,
-    "cordelia": CordeliaScraper,
+    "MSK": MaerskScraper,
+    "MSC": MscScraper,
+    "CSL": CordeliaScraper,
     #"zim": ZimScraper,
-    "pil": PilScraper,
-    "sinokor": SinokorScraper,
-    "unifeeder": UnifeederScraper,
-    "heungaline": HeungALineScraper,
-    "tailwind": TailwindScraper,
+    "PIL": PilScraper,
+    "SNK": SinokorScraper,
+    "UNIFEEDER": UnifeederScraper,
+    "HEUNG-A": HeungALineScraper,
+    "Tailwind": TailwindScraper,
     #"hmm": HmmScraper,
-    "kmtc": KmtcScraper,
-    "sitc": SitcScraper,
-    "goldstar": GoldstarScraper
+    "KMTC": KmtcScraper,
+    "SITC": SitcScraper,
+    "GOLSTAR": GoldstarScraper,
+    "YML": YangmingScraper,
+    "ONE": OneScraper,
+    "COSCO": CoscoScraper,
+    "EMC": EmcScraper
 }
 
 def get_scraper(name, driver, config):
