@@ -1,36 +1,23 @@
 import os
 import random
 from datetime import datetime
-
-from fastapi import FastAPI, Form, Request
-from fastapi.responses import HTMLResponse, JSONResponse
-from fastapi.templating import Jinja2Templates
-from fastapi.staticfiles import StaticFiles
-import pandas as pd
-
+from fastapi import FastAPI, Form
+from fastapi.responses import JSONResponse
 import config
 import driver_setup
 import scrapers
 
 app = FastAPI()
-app.mount("/static", StaticFiles(directory="static"), name="static")
-templates = Jinja2Templates(directory="templates")
 
+# Tạo thư mục output nếu chưa có
 if not os.path.exists("output"):
     os.makedirs("output")
-
-@app.get("/", response_class=HTMLResponse)
-async def read_root(request: Request):
-    """
-    Endpoint để hiển thị trang chủ với form nhập liệu.
-    """
-    services = list(scrapers.SCRAPERS.keys())
-    return templates.TemplateResponse("index.html", {"request": request, "services": services})
 
 def run_scraping_task(scraper_name: str, tracking_number: str):
     """
     Logic scraping được tái cấu trúc để trả về dữ liệu thô và thông báo lỗi.
-    Hàm này giờ sẽ ưu tiên trả về dictionary, và chỉ chuyển đổi nếu dữ liệu là DataFrame.
+    Hàm này giờ sẽ ưu tiên trả về dictionary.
+    (Giữ nguyên hàm này)
     """
     selected_proxy = None
     if config.PROXY_LIST:
@@ -40,7 +27,7 @@ def run_scraping_task(scraper_name: str, tracking_number: str):
     driver = None
     try:
         driver = driver_setup.create_driver(selected_proxy)
-        scraper_config = config.SCRAPER_CONFIGS.get(scraper_name, {}) # Sử dụng .get để tránh lỗi
+        scraper_config = config.SCRAPER_CONFIGS.get(scraper_name, {})
         scraper_instance = scrapers.get_scraper(scraper_name, driver, scraper_config)
 
         data, error = scraper_instance.scrape(tracking_number)
@@ -48,86 +35,42 @@ def run_scraping_task(scraper_name: str, tracking_number: str):
         if error:
             print(f"Failed to scrape: {error}")
             return None, error
-        
+
         if not data:
             return None, f"Scraping for '{tracking_number}' on {scraper_name} returned no data."
 
         print(f"Successfully scraped data for '{tracking_number}'.")
-        
-        if isinstance(data, dict) and not any(isinstance(v, pd.DataFrame) for v in data.values()):
-            return data, None
-        
+
+        # Hàm scrape giờ đã trả về dictionary trực tiếp
         if isinstance(data, dict):
-            json_data = {}
-            for key, df in data.items():
-                if isinstance(df, pd.DataFrame):
-                    # Giả định chỉ lấy dòng đầu tiên nếu có nhiều kết quả trong DataFrame
-                    json_data = df.to_dict(orient='records')[0] if not df.empty else {}
-                    # Trả về ngay khi tìm thấy DataFrame đầu tiên
-                    return json_data, None
-            return json_data, None
+            return data, None
+        else:
+             # Trường hợp hiếm hoi scraper cũ trả về dạng khác
+             print(f"Warning: Scraper returned unexpected data type: {type(data)}")
+             return None, "Scraper returned unexpected data format."
+
 
     finally:
         if driver:
             print("Closing browser.")
             driver.quit()
-    
+
     return None, "An unknown error occurred during the scraping task."
 
-@app.post("/start-scrape")
-async def start_scrape(request: Request, service: str = Form(...), bl_number: str = Form(...)):
+# --- Endpoint để lấy danh sách services ---
+@app.get("/api/v1/services")
+async def get_available_services():
     """
-    Endpoint cho giao diện web, trả về dữ liệu scrape dưới dạng JSON.
+    API endpoint để lấy danh sách tất cả các service_name khả dụng.
     """
-    data, error = run_scraping_task(service, bl_number)
+    # Lấy danh sách các keys từ dictionary SCRAPERS trong module scrapers
+    available_services = list(scrapers.SCRAPERS.keys())
+    # Trả về danh sách dưới dạng JSON
+    return JSONResponse(content={"services": available_services})
 
-    if error or not data:
-        message = error or "Scraping không trả về dữ liệu."
-        return JSONResponse(
-            status_code=404 if not data else 500,
-            content={"success": False, "message": message}
-        )
-
-    return JSONResponse(
-        content={
-            "success": True,
-            "data": data
-        }
-    )
-
-@app.post("/api/v1/track-all")
-async def track_all(request: Request, bl_number: str = Form(...)):
-    """
-    API endpoint để tự động tra cứu mã vận đơn trên tất cả các scraper.
-    """
-    all_scrapers = list(scrapers.SCRAPERS.keys())
-    searched_scrapers = []
-
-    for scraper_name in all_scrapers:
-        searched_scrapers.append(scraper_name)
-        data, error = run_scraping_task(scraper_name, bl_number)
-
-        if data and not error:
-            return JSONResponse(
-                content={
-                    "success": True,
-                    "message": f"Đã tìm thấy thông tin trên trang: {scraper_name}",
-                    "source": scraper_name,
-                    **data
-                }
-            )
-
-    return JSONResponse(
-        status_code=404,
-        content={
-            "success": False,
-            "message": f"Không tìm thấy thông tin cho mã '{bl_number}'.",
-            "searched_on": searched_scrapers
-        }
-    )
-
+# --- Endpoint để thực hiện scrape web
 @app.post("/api/v1/track")
-async def track(request: Request, bl_number: str = Form(...), service_name: str = Form(...)):
+async def track(bl_number: str = Form(...), service_name: str = Form(...)):
     """
     API endpoint để tra cứu mã vận đơn trên một dịch vụ cụ thể.
     """
@@ -144,16 +87,19 @@ async def track(request: Request, bl_number: str = Form(...), service_name: str 
 
     if error or not data:
         message = error or f"Không tìm thấy thông tin cho mã '{bl_number}' trên trang {service_name}."
+        # Trả về 404 nếu không có dữ liệu, 500 nếu có lỗi khác
+        status_code = 404 if "Không tìm thấy" in message or "returned no data" in message else 500
         return JSONResponse(
-            status_code=404 if not data else 500,
+            status_code=status_code,
             content={"success": False, "message": message}
         )
-    
+
+    # Trả về kết quả thành công, bao gồm cả source và data
     return JSONResponse(
         content={
             "success": True,
             "message": f"Đã tìm thấy thông tin trên trang: {service_name}",
             "source": service_name,
-            **data
+            **data # Giải nén dictionary data vào response
         }
     )
