@@ -15,9 +15,7 @@ if not os.path.exists("output"):
 
 def run_scraping_task(scraper_name: str, tracking_number: str):
     """
-    Logic scraping được tái cấu trúc để trả về dữ liệu thô và thông báo lỗi.
-    Hàm này giờ sẽ ưu tiên trả về dictionary.
-    (Giữ nguyên hàm này)
+    Trả về dữ liệu thô và thông báo lỗi.
     """
     selected_proxy = None
     if config.PROXY_LIST:

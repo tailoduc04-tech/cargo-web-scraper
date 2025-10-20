@@ -50,7 +50,7 @@ Sau khi các container đã chạy, API sẽ sẵn sàng tại địa chỉ `htt
     ```bash
     curl http://localhost:8000/api/v1/services
     ```
-* Tìm thông tin cho mã `YOUR_BL_NUMBER` trên hãng tàu Maersk (`MSK`):
+* Tìm thông tin cho mã `259545107` trên hãng tàu Maersk (`MSK`):
     ```bash
-    curl -X POST -F "bl_number=YOUR_BL_NUMBER" -F "service_name=MSK" http://localhost:8000/api/v1/track
+    curl -X POST -F "bl_number=259545107" -F "service_name=MSK" http://localhost:8000/api/v1/track
     ```

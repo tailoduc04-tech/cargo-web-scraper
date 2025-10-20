@@ -1,5 +1,3 @@
-# cargo-web-scraper/driver_setup.py
-
 import os
 import shutil
 import zipfile
@@ -71,7 +69,6 @@ def create_driver(proxy_config=None):
 def _create_proxy_extension(config):
     """
     Hàm nội bộ, tạo một file .zip extension để xác thực proxy.
-    (Hàm này giữ nguyên, không thay đổi)
     """
     manifest_json = """
     {
