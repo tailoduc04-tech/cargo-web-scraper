@@ -87,5 +87,17 @@ SCRAPER_CONFIGS = {
     },
     "EMC": {
         "url": "https://ct.shipmentlink.com/servlet/TDB1_CargoTracking.do"
+    },
+    "OSL": {
+        "url": "https://star-liners.com/track-my-shipment/"
+    },
+    "PAN": {
+        "url": "http://www.shippingline.org/track/?type=bill&container={BL_NUMBER}&line=pancont&track=Track+container"
+    },
+    "SEALEAD": {
+        "url": "https://www.sea-lead.com/track-shipment/"
+    },
+    "TRANSLINER": {
+        "url": "https://translinergroup.track.tigris.systems/?ref="
     }
 }
