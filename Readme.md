@@ -4,8 +4,8 @@
 
 ## Yêu cầu
 
-* **Docker:**
-* **Docker Compose:**
+* **Docker**
+* **Docker Compose**
 
 ## Cài đặt và Chạy
 
@@ -24,8 +24,6 @@
         ```bash
         docker-compose up --build -d
         ```
-        * `--build`: Build lại image nếu có thay đổi trong `Dockerfile.app` hoặc code.
-        * `-d`: Chạy container ở chế độ detached (chạy nền).
 
 3.  **Kiểm tra Trạng thái:**
     * Đợi một lát để các container khởi động. Có thể kiểm tra trạng thái bằng lệnh:
