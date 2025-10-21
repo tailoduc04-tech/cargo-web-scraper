@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from typing import Tuple, Optional
 
 class BaseScraper(ABC):
     """
@@ -17,18 +18,13 @@ class BaseScraper(ABC):
         self.wait = None
 
     @abstractmethod
-    def scrape(self, tracking_number):
+    @abstractmethod
+    def scrape(self, tracking_number: str) -> Tuple[Optional[dict], Optional[str]]: # Hoặc Optional[N8nTrackingInfor]
         """
         Phương thức scraping chính.
-        Mỗi scraper con PHẢI triển khai phương thức này.
-
-        Args:
-            tracking_number (str): Mã vận đơn cần scrape.
-
         Returns:
-            tuple: Một tuple chứa (data, error_message).
-                   - data (dict): Một dictionary chứa các DataFrame kết quả. 
-                                  Ví dụ: {'main': df1, 'details': df2}
-                   - error_message (str or None): Thông báo lỗi nếu có.
+            tuple: (data, error_message)
+                   - data (dict | N8nTrackingInfor | None): Dữ liệu tracking đã chuẩn hóa hoặc None nếu lỗi.
+                   - error_message (str | None): Thông báo lỗi nếu có.
         """
         pass
