@@ -8,6 +8,7 @@ import traceback
 import re
 
 from .base_scraper import BaseScraper
+from schemas import N8nTrackingInfo
 
 class InterasiaScraper(BaseScraper):
     """
@@ -118,22 +119,39 @@ class InterasiaScraper(BaseScraper):
                          transit_departure_events.append(event)
 
             # 4. Xây dựng đối tượng JSON chuẩn hóa
-            shipment_data = {
-                "BookingNo": tracking_number,
-                "BlNumber": tracking_number,
-                "BookingStatus": None, # Không có thông tin
-                "Pol": pol,
-                "Pod": pod,
-                "Etd": self._format_date(etd),
-                "Atd": self._format_date(actual_departure.get('date')),
-                "Eta": self._format_date(eta),
-                "Ata": self._format_date(actual_arrival.get('date')),
-                "TransitPort": ", ".join(transit_ports) if transit_ports else None,
-                "EtdTransit": None, # Không có thông tin
-                "AtdTrasit": self._format_date(transit_departure_events[-1].get('date')) if transit_departure_events else None,
-                "EtaTransit": None, # Không có thông tin
-                "AtaTrasit": self._format_date(transit_arrival_events[0].get('date')) if transit_arrival_events else None,
-            }
+            #shipment_data = {
+            #    "BookingNo": tracking_number,
+            #    "BlNumber": tracking_number,
+            #    "BookingStatus": None, # Không có thông tin
+            #    "Pol": pol,
+            #    "Pod": pod,
+            #    "Etd": self._format_date(etd),
+            #    "Atd": self._format_date(actual_departure.get('date')),
+            #    "Eta": self._format_date(eta),
+            #    "Ata": self._format_date(actual_arrival.get('date')),
+            #    "TransitPort": ", ".join(transit_ports) if transit_ports else None,
+            #    "EtdTransit": None, # Không có thông tin
+            #    "AtdTrasit": self._format_date(transit_departure_events[-1].get('date')) if transit_departure_events else None,
+            #    "EtaTransit": None, # Không có thông tin
+            #    "AtaTrasit": self._format_date(transit_arrival_events[0].get('date')) if transit_arrival_events else None,
+            #}
+            
+            shipment_data = N8nTrackingInfo(
+                BookingNo= tracking_number,
+                BlNumber= tracking_number,
+                BookingStatus= None,
+                Pol= pol,
+                Pod= pod,
+                Etd= self._format_date(etd),
+                Atd= self._format_date(actual_departure.get('date')),
+                Eta= self._format_date(eta),
+                Ata= self._format_date(actual_arrival.get('date')),
+                TransitPort= ", ".join(transit_ports) if transit_ports else None,
+                EtdTransit= None,
+                AtdTransit= self._format_date(transit_departure_events[-1].get('date')) if transit_departure_events else None,
+                EtaTransit= None,
+                AtaTransit= self._format_date(transit_arrival_events[0].get('date')) if transit_arrival_events else None
+            )
             return shipment_data
 
         except Exception as e:

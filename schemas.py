@@ -22,7 +22,7 @@ class N8nTrackingInfo(BaseModel):
 
 
 class Result(BaseModel):
-    ResultData: Optional[N8nTrackingInfor] = None
+    ResultData: Optional[N8nTrackingInfo] = None
     Status: Optional[int] = None
     Error: bool = False
     Errors: Optional[Dict[str, str]] = None

@@ -5,8 +5,9 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException, NoSuchElementException
 import traceback
-from .base_scraper import BaseScraper
 
+from .base_scraper import BaseScraper
+from schemas import N8nTrackingInfo
 class UnifeederScraper(BaseScraper):
     """
     Triển khai logic scraping cụ thể cho trang Unifeeder và chuẩn hóa kết quả
@@ -99,22 +100,39 @@ class UnifeederScraper(BaseScraper):
                         ts_load_events.append(event)
             
             # 4. Tạo đối tượng JSON và điền dữ liệu
-            shipment_data = {
-                "BookingNo": tracking_number,
-                "BlNumber": tracking_number,
-                "BookingStatus": None, # Không có thông tin
-                "Pol": pol,
-                "Pod": pod,
-                "Etd": None, # Không có thông tin
-                "Atd": self._format_date(departure_event.get('date')) if departure_event else None,
-                "Eta": self._format_date(arrival_event.get('date')) if arrival_event and arrival_event.get('type') == 'ngay_du_kien' else None,
-                "Ata": self._format_date(arrival_event.get('date')) if arrival_event and arrival_event.get('type') == 'ngay_thuc_te' else None,
-                "TransitPort": ", ".join(transit_ports) if transit_ports else None,
-                "EtdTransit": None,
-                "AtdTransit": self._format_date(ts_load_events[-1].get('date')) if ts_load_events else None, 
-                "EtaTransit": None,
-                "AtaTransit": self._format_date(ts_discharge_events[0].get('date')) if ts_discharge_events else None,
-            }
+            #shipment_data = {
+            #    "BookingNo": tracking_number,
+            #    "BlNumber": tracking_number,
+            #    "BookingStatus": None, # Không có thông tin
+            #    "Pol": pol,
+            #    "Pod": pod,
+            #    "Etd": None, # Không có thông tin
+            #    "Atd": self._format_date(departure_event.get('date')) if departure_event else None,
+            #    "Eta": self._format_date(arrival_event.get('date')) if arrival_event and arrival_event.get('type') == 'ngay_du_kien' else None,
+            #    "Ata": self._format_date(arrival_event.get('date')) if arrival_event and arrival_event.get('type') == 'ngay_thuc_te' else None,
+            #    "TransitPort": ", ".join(transit_ports) if transit_ports else None,
+            #    "EtdTransit": None,
+            #    "AtdTransit": self._format_date(ts_load_events[-1].get('date')) if ts_load_events else None, 
+            #    "EtaTransit": None,
+            #    "AtaTransit": self._format_date(ts_discharge_events[0].get('date')) if ts_discharge_events else None,
+            #}
+            
+            shipment_data = N8nTrackingInfo(
+                BookingNo= tracking_number,
+                BlNumber= tracking_number,
+                BookingStatus= None,
+                Pol= pol,
+                Pod= pod,
+                Etd= None,
+                Atd= self._format_date(departure_event.get('date')) if departure_event else None,
+                Eta= self._format_date(arrival_event.get('date')) if arrival_event and arrival_event.get('type') == 'ngay_du_kien' else None,
+                Ata= self._format_date(arrival_event.get('date')) if arrival_event and arrival_event.get('type') == 'ngay_thuc_te' else None,
+                TransitPort= ", ".join(transit_ports) if transit_ports else None,
+                EtdTransit= None,
+                AtdTransit= self._format_date(ts_load_events[-1].get('date')) if ts_load_events else None,
+                EtaTransit= None,
+                AtaTransit= self._format_date(ts_discharge_events[0].get('date')) if ts_discharge_events else None,
+            )
             
             return shipment_data
 

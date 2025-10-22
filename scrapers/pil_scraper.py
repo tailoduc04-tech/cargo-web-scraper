@@ -8,6 +8,7 @@ import time
 import traceback
 
 from .base_scraper import BaseScraper
+from schemas import N8nTrackingInfo
 
 class PilScraper(BaseScraper):
     """
@@ -91,22 +92,39 @@ class PilScraper(BaseScraper):
 
             # --- 5. Chuẩn hóa dữ liệu theo định dạng JSON yêu cầu ---
             print("[LOG] Bắt đầu chuẩn hóa dữ liệu đầu ra...")
-            normalized_data = {
-                "BookingNo": tracking_number,
-                "BlNumber": tracking_number,
-                "BookingStatus": None, # Không có thông tin này trên trang
-                "Pol": pol,
-                "Pod": pod,
-                "Etd": self._format_pil_date(summary_data.get("ETD")),
-                "Atd": self._format_pil_date(actual_departure_event.get("date")) if actual_departure_event else None,
-                "Eta": self._format_pil_date(summary_data.get("ETA")),
-                "Ata": self._format_pil_date(actual_arrival_event.get("date")) if actual_arrival_event else None,
-                "TransitPort": ", ".join(transit_ports) if transit_ports else None,
-                "EtdTransit": None, # Không có thông tin
-                "AtdTrasit": self._format_pil_date(atd_transit_event.get("date")) if atd_transit_event else None,
-                "EtaTransit": None, # Không có thông tin
-                "AtaTrasit": self._format_pil_date(ata_transit_event.get("date")) if ata_transit_event else None,
-            }
+            #normalized_data = {
+            #    "BookingNo": tracking_number,
+            #    "BlNumber": tracking_number,
+            #    "BookingStatus": None, # Không có thông tin này trên trang
+            #    "Pol": pol,
+            #    "Pod": pod,
+            #    "Etd": self._format_pil_date(summary_data.get("ETD")),
+            #    "Atd": self._format_pil_date(actual_departure_event.get("date")) if actual_departure_event else None,
+            #    "Eta": self._format_pil_date(summary_data.get("ETA")),
+            #    "Ata": self._format_pil_date(actual_arrival_event.get("date")) if actual_arrival_event else None,
+            #    "TransitPort": ", ".join(transit_ports) if transit_ports else None,
+            #    "EtdTransit": None, # Không có thông tin
+            #    "AtdTrasit": self._format_pil_date(atd_transit_event.get("date")) if atd_transit_event else None,
+            #    "EtaTransit": None, # Không có thông tin
+            #    "AtaTrasit": self._format_pil_date(ata_transit_event.get("date")) if ata_transit_event else None,
+            #}
+            
+            normalized_data = N8nTrackingInfo(
+                BookingNo= tracking_number,
+                BlNumber= tracking_number,
+                BookingStatus= None,
+                Pol= pol,
+                Pod= pod,
+                Etd= self._format_pil_date(summary_data.get("ETD")),
+                Atd= self._format_pil_date(actual_departure_event.get("date")) if actual_departure_event else None,
+                Eta= self._format_pil_date(summary_data.get("ETA")),
+                Ata= self._format_pil_date(actual_arrival_event.get("date")) if actual_arrival_event else None,
+                TransitPort= ", ".join(transit_ports) if transit_ports else None,
+                EtdTransit= None,
+                AtdTransit= self._format_pil_date(atd_transit_event.get("date")) if atd_transit_event else None,
+                EtaTransit= None,
+                AtaTransit= self._format_pil_date(ata_transit_event.get("date")) if ata_transit_event else None,
+            )
             print("[LOG] Đã chuẩn hóa dữ liệu thành công.")
 
             return normalized_data, None

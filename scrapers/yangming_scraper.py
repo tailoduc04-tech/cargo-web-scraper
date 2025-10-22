@@ -7,6 +7,7 @@ from selenium.common.exceptions import TimeoutException, NoSuchElementException
 import traceback
 import re
 from .base_scraper import BaseScraper
+from schemas import N8nTrackingInfo
 
 class YangmingScraper(BaseScraper):
     """
@@ -128,22 +129,39 @@ class YangmingScraper(BaseScraper):
                         break 
                         
             # 3. Tạo đối tượng JSON và điền dữ liệu
-            shipment_data = {
-                "BookingNo": tracking_number, # Không có Booking No riêng, dùng mã đã search
-                "BlNumber": bl_number,
-                "BookingStatus": None, # Không có thông tin
-                "Pol": pol,
-                "Pod": pod,
-                "Etd": etd,
-                "Atd": atd,
-                "Eta": eta,
-                "Ata": ata,
-                "TransitPort": ", ".join(transit_ports) if transit_ports else None,
-                "EtdTransit": None, # Không có thông tin
-                "AtdTrasit": None, # Không có thông tin
-                "EtaTransit": None, # Không có thông tin
-                "AtaTrasit": ata_transit,
-            }
+            #shipment_data = {
+            #    "BookingNo": tracking_number, # Không có Booking No riêng, dùng mã đã search
+            #    "BlNumber": bl_number,
+            #    "BookingStatus": None, # Không có thông tin
+            #    "Pol": pol,
+            #    "Pod": pod,
+            #    "Etd": etd,
+            #    "Atd": atd,
+            #    "Eta": eta,
+            #    "Ata": ata,
+            #    "TransitPort": ", ".join(transit_ports) if transit_ports else None,
+            #    "EtdTransit": None, # Không có thông tin
+            #    "AtdTrasit": None, # Không có thông tin
+            #    "EtaTransit": None, # Không có thông tin
+            #    "AtaTrasit": ata_transit,
+            #}
+            
+            shipment_data = N8nTrackingInfo(
+                BookingNo= tracking_number,
+                BlNumber= bl_number,
+                BookingStatus= None,
+                Pol= pol,
+                Pod= pod,
+                Etd= etd,
+                Atd= atd,
+                Eta= eta,
+                Ata= ata,
+                TransitPort= ", ".join(transit_ports) if transit_ports else None,
+                EtdTransit= None, 
+                AtdTrasit= None, 
+                EtaTransit= None,
+                AtaTrasit= ata_transit,
+            )
             
             return shipment_data
 

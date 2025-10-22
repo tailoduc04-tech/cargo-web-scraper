@@ -8,6 +8,7 @@ import time
 import traceback
 
 from .base_scraper import BaseScraper
+from schemas import N8nTrackingInfo
 
 class GoldstarScraper(BaseScraper):
     """
@@ -143,22 +144,40 @@ class GoldstarScraper(BaseScraper):
                         transit_load_events.append(event)
             
             # 4. Xây dựng đối tượng JSON cuối cùng
-            shipment_data = {
-                "BookingNo": bl_number, # Sử dụng B/L No vì không có Booking No riêng
-                "BlNumber": bl_number,
-                "BookingStatus" : None, # Không có thông tin
-                "Pol": pol,
-                "Pod": pod,
-                "Etd": self._format_date(etd),
-                "Atd": self._format_date(actual_departure.get('date')) if actual_departure else None,
-                "Eta": self._format_date(eta),
-                "Ata": self._format_date(actual_arrival.get('date')) if actual_arrival else None,
-                "TransitPort": ", ".join(transit_ports) if transit_ports else None,
-                "EtdTransit": None, # Không có thông tin
-                "AtdTrasit": self._format_date(transit_load_events[-1].get('date')) if transit_load_events else None,
-                "EtaTransit": None, # Không có thông tin
-                "AtaTrasit": self._format_date(transit_discharge_events[0].get('date')) if transit_discharge_events else None,
-            }
+            #shipment_data = {
+            #    "BookingNo": bl_number, # Sử dụng B/L No vì không có Booking No riêng
+            #    "BlNumber": bl_number,
+            ##    "BookingStatus" : None, # Không có thông tin
+            #    "Pol": pol,
+            #    "Pod": pod,
+            #    "Etd": self._format_date(etd),
+            ##    "Atd": self._format_date(actual_departure.get('date')) if actual_departure else None,
+            #    "Eta": self._format_date(eta),
+            #    "Ata": self._format_date(actual_arrival.get('date')) if actual_arrival else None,
+            #    "TransitPort": ", ".join(transit_ports) if transit_ports else None,
+            #    "EtdTransit": None, # Không có thông tin
+            #    "AtdTrasit": self._format_date(transit_load_events[-1].get('date')) if transit_load_events else None,
+            #    "EtaTransit": None, # Không có thông tin
+            #    "AtaTrasit": self._format_date(transit_discharge_events[0].get('date')) if transit_discharge_events else None,
+            #}
+            
+            shipment_data = N8nTrackingInfo(
+                BookingNo= bl_number, # Sử dụng B/L No vì không có Booking No riêng
+                BlNumber= bl_number,
+                BookingStatus= None, # Không có thông tin
+                Pol= pol,
+                Pod= pod,
+                Etd= self._format_date(etd),
+                Atd= self._format_date(actual_departure.get('date')) if actual_departure else None,
+                Eta= self._format_date(eta),
+                Ata= self._format_date(actual_arrival.get('date')) if actual_arrival else None,
+                TransitPort= ", ".join(transit_ports) if transit_ports else None,
+                EtdTransit= None,
+                AtdTransit= self._format_date(transit_load_events[-1].get('date')) if transit_load_events else None,
+                EtaTransit= None,
+                AtaTransit= self._format_date(transit_discharge_events[0].get('date')) if transit_discharge_events else None
+            )    
+            
             return shipment_data
         except Exception as e:
             print(f"[Goldstar Scraper] ERROR: Lỗi khi trích xuất và chuẩn hóa dữ liệu: {e}")

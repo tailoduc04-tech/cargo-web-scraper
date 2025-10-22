@@ -8,6 +8,7 @@ import traceback
 import time
 
 from .base_scraper import BaseScraper
+from schemas import N8nTrackingInfo
 
 class TranslinerScraper(BaseScraper):
     """
@@ -93,22 +94,39 @@ class TranslinerScraper(BaseScraper):
             ata = pod_ata.replace("POD ATA:", "").strip() if pod_ata else None
 
             # Xây dựng đối tượng JSON theo template
-            shipment_data = {
-                "BookingNo": booking_no,
-                "BlNumber": bl_number,
-                "BookingStatus": booking_status,
-                "Pol": None,
-                "Pod": None,
-                "Etd": None,
-                "Atd": self._format_date(atd),
-                "Eta": None,
-                "Ata": self._format_date(ata),
-                "TransitPort": None,
-                "EtdTransit": None,
-                "AtdTrasit": None,
-                "EtaTransit": None,
-                "AtaTrasit": None
-            }
+            #shipment_data = {
+            #    "BookingNo": booking_no,
+            #    "BlNumber": bl_number,
+            #    "BookingStatus": booking_status,
+            #    "Pol": None,
+            #    "Pod": None,
+            #    "Etd": None,
+            #    "Atd": self._format_date(atd),
+            #    "Eta": None,
+            #    "Ata": self._format_date(ata),
+            #    "TransitPort": None,
+            #    "EtdTransit": None,
+            #    "AtdTrasit": None,
+            #    "EtaTransit": None,
+            #    "AtaTrasit": None
+            #}
+            
+            shipment_data = N8nTrackingInfo(
+                BookingNo= booking_no,
+                BlNumber= bl_number,
+                BookingStatus= booking_status,
+                Pol= None,
+                Pod= None,
+                Etd= None,
+                Atd= self._format_date(atd),
+                Eta= None,
+                Ata= self._format_date(ata),
+                TransitPort= None,
+                EtdTransit= None,
+                AtdTransit= None,
+                EtaTransit= None,
+                AtaTransit= None
+            )
             return shipment_data
             
         except Exception as e:

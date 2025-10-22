@@ -8,6 +8,7 @@ import time
 import traceback
 
 from .base_scraper import BaseScraper
+from schemas import N8nTrackingInfo
 
 class TailwindScraper(BaseScraper):
     """
@@ -163,22 +164,39 @@ class TailwindScraper(BaseScraper):
             traceback.print_exc()
 
         # --- 3. Xây dựng đối tượng JSON cuối cùng ---
-        shipment_data = {
-            "BookingNo": booking_no,
-            "BlNumber": bl_no,
-            "BookingStatus": None,
-            "Pol": pol,
-            "Pod": pod,
-            "Etd": self._format_date(etd_raw),
-            "Atd": self._format_date(atd),
-            "Eta": self._format_date(eta_raw),
-            "Ata": self._format_date(ata),
-            "TransitPort": ", ".join(transit_ports) if transit_ports else None,
-            "EtdTransit": None,
-            "AtdTrasit": self._format_date(atd_transit),
-            "EtaTransit": None,
-            "AtaTrasit": self._format_date(ata_transit)
-        }
+        #shipment_data = {
+        #    "BookingNo": booking_no,
+        #    "BlNumber": bl_no,
+        #    "BookingStatus": None,
+        #    "Pol": pol,
+        #    "Pod": pod,
+        #    "Etd": self._format_date(etd_raw),
+        #    "Atd": self._format_date(atd),
+        #    "Eta": self._format_date(eta_raw),
+        #    "Ata": self._format_date(ata),
+        #    "TransitPort": ", ".join(transit_ports) if transit_ports else None,
+        #    "EtdTransit": None,
+        #    "AtdTrasit": self._format_date(atd_transit),
+        #    "EtaTransit": None,
+        #    "AtaTrasit": self._format_date(ata_transit)
+        #}
+        
+        shipment_data = N8nTrackingInfo(
+            BookingNo= booking_no,
+            BlNumber= bl_no,
+            BookingStatus= None,
+            Pol= pol,
+            Pod= pod,
+            Etd= self._format_date(etd_raw),
+            Atd= self._format_date(atd),
+            Eta= self._format_date(eta_raw),
+            Ata= self._format_date(ata),
+            TransitPort= ", ".join(transit_ports) if transit_ports else None,
+            EtdTransit= None,
+            AtdTransit= self._format_date(atd_transit),
+            EtaTransit= None,
+            AtaTransit= self._format_date(ata_transit)
+        )
                 
         return shipment_data
 

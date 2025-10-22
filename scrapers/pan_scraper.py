@@ -8,6 +8,7 @@ import traceback
 import time
 
 from .base_scraper import BaseScraper
+from schemas import N8nTrackingInfo
 
 class PanScraper(BaseScraper):
     """
@@ -105,22 +106,39 @@ class PanScraper(BaseScraper):
                 # Thời gian đến cuối cùng (Ata) bây giờ là của chặng 2
                 ata = self._get_text_by_id("pod_eta_2")
 
-            shipment_data = {
-                "BookingNo": booking_no or tracking_number,
-                "BlNumber": bl_number or tracking_number,
-                "BookingStatus": None,
-                "Pol": pol,
-                "Pod": pod,
-                "Etd": None,
-                "Atd": self._format_date(atd),
-                "Eta": None,
-                "Ata": self._format_date(ata),
-                "TransitPort": transit_port,
-                "EtdTransit": None,
-                "AtdTrasit": self._format_date(atd_transit),
-                "EtaTransit": None,
-                "AtaTrasit": self._format_date(ata_transit),
-            }
+            #shipment_data = {
+            #    "BookingNo": booking_no or tracking_number,
+            #    "BlNumber": bl_number or tracking_number,
+            #    "BookingStatus": None,
+            #    "Pol": pol,
+            #    "Pod": pod,
+            #    "Etd": None,
+            #    "Atd": self._format_date(atd),
+            #    "Eta": None,
+            #    "Ata": self._format_date(ata),
+            #    "TransitPort": transit_port,
+            #    "EtdTransit": None,
+            #    "AtdTrasit": self._format_date(atd_transit),
+            #    "EtaTransit": None,
+            #    "AtaTrasit": self._format_date(ata_transit),
+            #}
+            
+            shipment_data = N8nTrackingInfo(
+                BookingNo= booking_no or tracking_number,
+                BlNumber= bl_number or tracking_number,
+                BookingStatus= None,
+                Pol= pol,
+                Pod= pod,
+                Etd= None,
+                Atd= self._format_date(atd),
+                Eta= None,
+                Ata= self._format_date(ata),
+                TransitPort= transit_port,
+                EtdTransit= None,
+                AtdTransit= self._format_date(atd_transit),
+                EtaTransit= None,
+                AtaTransit= self._format_date(ata_transit)
+            ) 
             return shipment_data
 
         except Exception as e:

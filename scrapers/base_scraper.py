@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 from typing import Tuple, Optional
+from schemas import N8nTrackingInfo
 
 class BaseScraper(ABC):
     """
@@ -19,7 +20,7 @@ class BaseScraper(ABC):
 
     @abstractmethod
     @abstractmethod
-    def scrape(self, tracking_number: str) -> Tuple[Optional[dict], Optional[str]]: # Hoặc Optional[N8nTrackingInfor]
+    def scrape(self, tracking_number: str) -> Tuple[Optional[N8nTrackingInfo], Optional[str]]:
         """
         Phương thức scraping chính.
         Returns:

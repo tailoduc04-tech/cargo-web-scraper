@@ -1,5 +1,3 @@
-# scrapers/emc_scraper.py
-
 import pandas as pd
 from datetime import datetime
 from selenium.webdriver.common.by import By
@@ -10,6 +8,7 @@ import traceback
 import time
 
 from .base_scraper import BaseScraper
+from schemas import N8nTrackingInfo
 
 class EmcScraper(BaseScraper):
     """
@@ -174,24 +173,24 @@ class EmcScraper(BaseScraper):
                     elif "loaded on outbound vessel" in desc:
                         if loc not in transit_ports: transit_ports.append(loc)
                         atd_transit_event = event # Lấy sự kiện cuối cùng
-
-            # --- TẠO JSON ĐẦU RA ---
-            shipment_data = {
-                "BookingNo": tracking_number,
-                "BlNumber": bl_number,
-                "BookingStatus": None,
-                "Pol": pol,
-                "Pod": pod,
-                "Etd": self._format_date(etd_str),
-                "Atd": self._format_date(atd_event.get("date")) if atd_event else None,
-                "Eta": self._format_date(eta_str),
-                "Ata": self._format_date(ata_event.get("date")) if ata_event else None,
-                "TransitPort": ", ".join(transit_ports) if transit_ports else None,
-                "EtdTransit": None, 
-                "AtdTrasit": self._format_date(atd_transit_event.get("date")) if atd_transit_event else None,
-                "EtaTransit": None,
-                "AtaTrasit": self._format_date(ata_transit_event.get("date")) if ata_transit_event else None
-            }
+            
+            shipment_data = N8nTrackingInfo(
+                BookingNo= tracking_number,
+                BlNumber= bl_number,
+                BookingStatus= None,
+                Pol= pol,
+                Pod= pod,
+                Etd= self._format_date(etd_str),
+                Atd= self._format_date(atd_event.get("date")) if atd_event else None,
+                Eta= self._format_date(eta_str),
+                Ata= self._format_date(ata_event.get("date")) if ata_event else None,
+                TransitPort= ", ".join(transit_ports) if transit_ports else None,
+                EtdTransit= None,
+                AtdTransit= self._format_date(atd_transit_event.get("date")) if atd_transit_event else None,
+                EtaTransit= None,
+                AtaTransit= self._format_date(ata_transit_event.get("date")) if ata_transit_event else None
+            )
+            
             return shipment_data
         except Exception as e:
             print(f"    [EMC Scraper] Lỗi trong quá trình trích xuất: {e}")
