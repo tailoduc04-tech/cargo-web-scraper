@@ -85,20 +85,20 @@ class CordeliaScraper(BaseScraper):
                 transit_port = current_location
             
             shipment_data = N8nTrackingInfo(
-                BookingNo= None,
+                BookingNo= "",
                 BlNumber=bl_number,
                 BookingStatus= current_status,
                 Pol= pol,
                 Pod=pod,
-                Etd=None,
+                Etd="",
                 Atd=sob_date,
                 Eta=eta_fpod,
-                Ata=None,
-                TransitPort= transit_port,
-                EtdTransit=None,
-                AtdTransit=None,
-                EtaTransit=None,
-                AtaTransit=None
+                Ata="",
+                TransitPort= transit_port if transit_port else "",
+                EtdTransit="",
+                AtdTransit="",
+                EtaTransit="",
+                AtaTransit=""
             )
             
             return shipment_data

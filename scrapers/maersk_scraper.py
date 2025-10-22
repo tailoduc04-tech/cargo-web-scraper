@@ -180,18 +180,18 @@ class MaerskScraper(BaseScraper):
         shipment_data = N8nTrackingInfo(
             BookingNo= tracking_number,
             BlNumber= tracking_number,
-            BookingStatus= None,
-            Pol= pol,
-            Pod= pod,
-            Etd= self._format_date(departure_event_estimated.get('date')) if departure_event_estimated else None,
-            Atd= self._format_date(departure_event_actual.get('date')) if departure_event_actual else None,
-            Eta= self._format_date(arrival_event_estimated.get('date')) if arrival_event_estimated else None,
-            Ata= self._format_date(arrival_event_actual.get('date')) if arrival_event_actual else None,
-            TransitPort= ", ".join(transit_ports) if transit_ports else None,
-            EtdTransit= self._format_date(etd_transit),
-            AtdTransit= self._format_date(atd_transit),
-            EtaTransit= self._format_date(eta_transit),
-            AtaTransit= self._format_date(ata_transit)
+            BookingStatus= "",
+            Pol= pol or "",
+            Pod= pod or "",
+            Etd= self._format_date(departure_event_estimated.get('date')) if departure_event_estimated else "",
+            Atd= self._format_date(departure_event_actual.get('date')) if departure_event_actual else "",
+            Eta= self._format_date(arrival_event_estimated.get('date')) if arrival_event_estimated else "",
+            Ata= self._format_date(arrival_event_actual.get('date')) if arrival_event_actual else "",
+            TransitPort= ", ".join(transit_ports) if transit_ports else "",
+            EtdTransit= self._format_date(etd_transit) or "",
+            AtdTransit= self._format_date(atd_transit) or "",
+            EtaTransit= self._format_date(eta_transit) or "",
+            AtaTransit= self._format_date(ata_transit) or ""
         )
         
         return shipment_data

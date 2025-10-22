@@ -162,18 +162,18 @@ class MscScraper(BaseScraper):
             shipment_data = N8nTrackingInfo(
                 BookingNo= booking_no,
                 BlNumber= bl_number,
-                BookingStatus= None,
-                Pol= pol,
-                Pod= pod,
-                Etd= None,
-                Atd= self._format_date(departure_event.get("date")) if departure_event else None,
-                Eta= self._format_date(arrival_event_estimated.get("date")) if arrival_event_estimated else None,
-                Ata= self._format_date(arrival_event_actual.get("date")) if arrival_event_actual else None,
-                TransitPort= ", ".join(transit_ports) if transit_ports else None,
-                EtdTransit= self._format_date(etd_transit_event.get("date")) if etd_transit_event else None,
-                AtdTransit= self._format_date(atd_transit_event.get("date")) if atd_transit_event else None,
-                EtaTransit= self._format_date(eta_transit_event.get("date")) if eta_transit_event else None,
-                AtaTransit= self._format_date(ata_transit_event.get("date")) if ata_transit_event else None
+                 BookingStatus= "",
+                 Pol= pol or "",
+                 Pod= pod or "",
+                 Etd= "",
+                 Atd= self._format_date(departure_event.get("date")) if departure_event else "",
+                 Eta= self._format_date(arrival_event_estimated.get("date")) if arrival_event_estimated else "",
+                 Ata= self._format_date(arrival_event_actual.get("date")) if arrival_event_actual else "",
+                 TransitPort= ", ".join(transit_ports) if transit_ports else "",
+                 EtdTransit= self._format_date(etd_transit_event.get("date")) if etd_transit_event else "",
+                 AtdTransit= self._format_date(atd_transit_event.get("date")) if atd_transit_event else "",
+                 EtaTransit= self._format_date(eta_transit_event.get("date")) if eta_transit_event else "",
+                 AtaTransit= self._format_date(ata_transit_event.get("date")) if ata_transit_event else ""
             )
             
             return shipment_data

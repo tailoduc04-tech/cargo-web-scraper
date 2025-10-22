@@ -114,18 +114,18 @@ class TranslinerScraper(BaseScraper):
             shipment_data = N8nTrackingInfo(
                 BookingNo= booking_no,
                 BlNumber= bl_number,
-                BookingStatus= booking_status,
-                Pol= None,
-                Pod= None,
-                Etd= None,
-                Atd= self._format_date(atd),
-                Eta= None,
-                Ata= self._format_date(ata),
-                TransitPort= None,
-                EtdTransit= None,
-                AtdTransit= None,
-                EtaTransit= None,
-                AtaTransit= None
+                BookingStatus= booking_status or "",
+                Pol= "",
+                Pod= "",
+                Etd= "",
+                Atd= self._format_date(atd) or "",
+                Eta= "",
+                Ata= self._format_date(ata) or "",
+                TransitPort= "",
+                EtdTransit= "",
+                AtdTransit= "",
+                EtaTransit= "",
+                AtaTransit= ""
             )
             return shipment_data
             

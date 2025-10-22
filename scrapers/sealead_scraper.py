@@ -147,18 +147,18 @@ class SealeadScraper(BaseScraper):
             shipment_data = N8nTrackingInfo(
                 BookingNo= bl_number,
                 BlNumber= bl_number,
-                BookingStatus= None,
-                Pol= pol,
-                Pod= pod,
-                Etd= self._format_date(etd),
-                Atd= None,
-                Eta= self._format_date(eta),
-                Ata= self._format_date(ata),
-                TransitPort= transit_port,
-                EtdTransit= self._format_date(etd_transit),
-                AtdTransit= None,
-                EtaTransit= self._format_date(eta_transit),
-                AtaTransit= None
+                BookingStatus= "",
+                Pol= pol or "",
+                Pod= pod or "",
+                Etd= self._format_date(etd) or "",
+                Atd= "",
+                Eta= self._format_date(eta) or "",
+                Ata= self._format_date(ata) or "",
+                TransitPort= transit_port or "",
+                EtdTransit= self._format_date(etd_transit) or "",
+                AtdTransit= "",
+                EtaTransit= self._format_date(eta_transit) or "",
+                AtaTransit= ""
             )
             return shipment_data
 

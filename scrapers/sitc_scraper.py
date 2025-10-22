@@ -173,18 +173,18 @@ class SitcScraper(BaseScraper):
             shipment_data = N8nTrackingInfo(
                 BookingNo= tracking_number,
                 BlNumber= bl_number,
-                BookingStatus= None,
-                Pol= pol,
-                Pod= pod,
-                Etd= self._format_date(etd),
-                Atd= self._format_date(atd),
-                Eta= self._format_date(eta),
-                Ata= self._format_date(ata),
-                TransitPort= transit_port,
-                EtdTransit= self._format_date(etd_transit),
-                AtdTransit= self._format_date(atd_transit),
-                EtaTransit= self._format_date(eta_transit),
-                AtaTransit= self._format_date(ata_transit)
+                BookingStatus= "",
+                Pol= pol or "",
+                Pod= pod or "",
+                Etd= self._format_date(etd) or "",
+                Atd= self._format_date(atd) or "",
+                Eta= self._format_date(eta) or "",
+                Ata= self._format_date(ata) or "",
+                TransitPort= transit_port or "",
+                EtdTransit= self._format_date(etd_transit) or "",
+                AtdTransit= self._format_date(atd_transit) or "",
+                EtaTransit= self._format_date(eta_transit) or "",
+                AtaTransit= self._format_date(ata_transit) or ""
             )
             
             print("[SITC Scraper] --- Hoàn tất _extract_and_normalize_data ---")

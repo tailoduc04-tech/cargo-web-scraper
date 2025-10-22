@@ -179,18 +179,18 @@ class OneScraper(BaseScraper):
             shipment_data = N8nTrackingInfo(
                 BookingNo= tracking_number,
                 BlNumber= tracking_number,
-                BookingStatus= None,
-                Pol= pol,
-                Pod= pod,
-                Etd= None,
-                Atd= self._format_date(atd_raw),
-                Eta= self._format_date(eta_raw),
-                Ata= self._format_date(ata_event.get("date")) if ata_event else None,
-                TransitPort= ", ".join(transit_ports) if transit_ports else None,
-                EtdTransit= None,
-                AtdTransit= self._format_date(atd_transit_event.get("date")) if atd_transit_event else None,
-                EtaTransit= None,
-                AtaTransit= self._format_date(ata_transit_event.get("date")) if ata_transit_event else None
+                BookingStatus= "",
+                Pol= pol or "",
+                Pod= pod or "",
+                Etd= "",
+                Atd= self._format_date(atd_raw) or "",
+                Eta= self._format_date(eta_raw) or "",
+                Ata= self._format_date(ata_event.get("date")) if ata_event else "",
+                TransitPort= ", ".join(transit_ports) if transit_ports else "",
+                EtdTransit= "",
+                AtdTransit= self._format_date(atd_transit_event.get("date")) if atd_transit_event else "",
+                EtaTransit= "",
+                AtaTransit= self._format_date(ata_transit_event.get("date")) if ata_transit_event else ""
             )
             
             print("[ONE Scraper] --- Hoàn tất, đã chuẩn hóa dữ liệu ---")

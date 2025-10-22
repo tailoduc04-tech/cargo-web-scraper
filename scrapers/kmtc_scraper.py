@@ -154,18 +154,18 @@ class KmtcScraper(BaseScraper):
             normalized_data = N8nTrackingInfo(
                 BookingNo= booking_no or tracking_number,
                 BlNumber= bl_number or tracking_number,
-                BookingStatus= booking_status,
+                BookingStatus= booking_status or "",
                 Pol= pol,
                 Pod= pod,
-                Etd= self._format_kmtc_date(etd),
-                Atd= self._format_kmtc_date(departure_event.get('date')),
-                Eta= self._format_kmtc_date(eta),
-                Ata= self._format_kmtc_date(arrival_event.get('date')),
-                TransitPort= transit_port,
-                EtdTransit= None,
-                AtdTransit= self._format_kmtc_date(atd_transit),
-                EtaTransit= None,
-                AtaTransit= self._format_kmtc_date(ata_transit)
+                Etd= self._format_kmtc_date(etd) or "",
+                Atd= self._format_kmtc_date(departure_event.get('date')) if departure_event else "",
+                Eta= self._format_kmtc_date(eta) or "",
+                Ata= self._format_kmtc_date(arrival_event.get('date')) if arrival_event else "",
+                TransitPort= transit_port or "",
+                EtdTransit= "",
+                AtdTransit= self._format_kmtc_date(atd_transit) or "",
+                EtaTransit= "",
+                AtaTransit= self._format_kmtc_date(ata_transit) or ""
             )
             
             print("[KMTC Scraper] --- Hoàn tất, đã chuẩn hóa dữ liệu ---")

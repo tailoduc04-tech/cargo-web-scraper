@@ -128,18 +128,18 @@ class HeungALineScraper(BaseScraper):
         shipment_data = N8nTrackingInfo(
             BookingNo= tracking_number,
             BlNumber= bl_no,
-            BookingStatus= booking_status,
-            Pol= pol,
-            Pod= pod,
-            Etd= self._format_date(etd),
-            Atd= self._format_date(actual_departure.get('date')) if actual_departure else None,
-            Eta= self._format_date(eta),
-            Ata= self._format_date(actual_arrival.get('date')) if actual_arrival else None,
-            TransitPort= ", ".join(transit_ports) if transit_ports else None,
-            EtdTransit= None,
-            AtdTransit= self._format_date(atd_transit_event.get('date')) if atd_transit_event else None,
-            EtaTransit= None,
-            AtaTransit= self._format_date(ata_transit_event.get('date')) if ata_transit_event else None
+            BookingStatus= booking_status or "",
+            Pol= pol or "",
+            Pod= pod or "",
+            Etd= self._format_date(etd) or "",
+            Atd= self._format_date(actual_departure.get('date')) if actual_departure else "",
+            Eta= self._format_date(eta) or "",
+            Ata= self._format_date(actual_arrival.get('date')) if actual_arrival else "",
+            TransitPort= ", ".join(transit_ports) if transit_ports else "",
+            EtdTransit= "",
+            AtdTransit= self._format_date(atd_transit_event.get('date')) if atd_transit_event else "",
+            EtaTransit= "",
+            AtaTransit= self._format_date(ata_transit_event.get('date')) if ata_transit_event else ""
         )
         
         return shipment_data

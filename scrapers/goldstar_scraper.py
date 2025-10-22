@@ -164,18 +164,18 @@ class GoldstarScraper(BaseScraper):
             shipment_data = N8nTrackingInfo(
                 BookingNo= bl_number, # Sử dụng B/L No vì không có Booking No riêng
                 BlNumber= bl_number,
-                BookingStatus= None, # Không có thông tin
+                 BookingStatus= "",
                 Pol= pol,
                 Pod= pod,
-                Etd= self._format_date(etd),
-                Atd= self._format_date(actual_departure.get('date')) if actual_departure else None,
-                Eta= self._format_date(eta),
-                Ata= self._format_date(actual_arrival.get('date')) if actual_arrival else None,
-                TransitPort= ", ".join(transit_ports) if transit_ports else None,
-                EtdTransit= None,
-                AtdTransit= self._format_date(transit_load_events[-1].get('date')) if transit_load_events else None,
-                EtaTransit= None,
-                AtaTransit= self._format_date(transit_discharge_events[0].get('date')) if transit_discharge_events else None
+                 Etd= self._format_date(etd) or "",
+                 Atd= self._format_date(actual_departure.get('date')) if actual_departure else "",
+                 Eta= self._format_date(eta) or "",
+                 Ata= self._format_date(actual_arrival.get('date')) if actual_arrival else "",
+                 TransitPort= ", ".join(transit_ports) if transit_ports else "",
+                 EtdTransit= "",
+                 AtdTransit= self._format_date(transit_load_events[-1].get('date')) if transit_load_events else "",
+                 EtaTransit= "",
+                 AtaTransit= self._format_date(transit_discharge_events[0].get('date')) if transit_discharge_events else ""
             )    
             
             return shipment_data

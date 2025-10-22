@@ -177,18 +177,18 @@ class EmcScraper(BaseScraper):
             shipment_data = N8nTrackingInfo(
                 BookingNo= tracking_number,
                 BlNumber= bl_number,
-                BookingStatus= None,
+                BookingStatus= "",
                 Pol= pol,
                 Pod= pod,
                 Etd= self._format_date(etd_str),
-                Atd= self._format_date(atd_event.get("date")) if atd_event else None,
+                Atd= self._format_date(atd_event.get("date")) if atd_event else "",
                 Eta= self._format_date(eta_str),
-                Ata= self._format_date(ata_event.get("date")) if ata_event else None,
-                TransitPort= ", ".join(transit_ports) if transit_ports else None,
-                EtdTransit= None,
-                AtdTransit= self._format_date(atd_transit_event.get("date")) if atd_transit_event else None,
-                EtaTransit= None,
-                AtaTransit= self._format_date(ata_transit_event.get("date")) if ata_transit_event else None
+                Ata= self._format_date(ata_event.get("date")) if ata_event else "",
+                TransitPort= ", ".join(transit_ports) if transit_ports else "",
+                EtdTransit= "",
+                AtdTransit= self._format_date(atd_transit_event.get("date")) if atd_transit_event else "",
+                EtaTransit= "",
+                AtaTransit= self._format_date(ata_transit_event.get("date")) if ata_transit_event else ""
             )
             
             return shipment_data

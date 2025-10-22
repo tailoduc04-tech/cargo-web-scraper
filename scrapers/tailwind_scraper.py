@@ -184,18 +184,18 @@ class TailwindScraper(BaseScraper):
         shipment_data = N8nTrackingInfo(
             BookingNo= booking_no,
             BlNumber= bl_no,
-            BookingStatus= None,
-            Pol= pol,
-            Pod= pod,
-            Etd= self._format_date(etd_raw),
-            Atd= self._format_date(atd),
-            Eta= self._format_date(eta_raw),
-            Ata= self._format_date(ata),
-            TransitPort= ", ".join(transit_ports) if transit_ports else None,
-            EtdTransit= None,
-            AtdTransit= self._format_date(atd_transit),
-            EtaTransit= None,
-            AtaTransit= self._format_date(ata_transit)
+            BookingStatus= "",
+            Pol= pol or "",
+            Pod= pod or "",
+            Etd= self._format_date(etd_raw) or "",
+            Atd= self._format_date(atd) or "",
+            Eta= self._format_date(eta_raw) or "",
+            Ata= self._format_date(ata) or "",
+            TransitPort= ", ".join(transit_ports) if transit_ports else "",
+            EtdTransit= "",
+            AtdTransit= self._format_date(atd_transit) or "",
+            EtaTransit= "",
+            AtaTransit= self._format_date(ata_transit) or ""
         )
                 
         return shipment_data

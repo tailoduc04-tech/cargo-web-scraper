@@ -167,18 +167,18 @@ class OslScraper(BaseScraper):
             shipment_data = N8nTrackingInfo(
                 BookingNo= tracking_number,
                 BlNumber= bl_number,
-                BookingStatus= booking_status,
-                Pol= pol,
-                Pod= pod,
-                Etd= None,
-                Atd= self._format_date(departure_event.get("date")),
-                Eta= None,
-                Ata= self._format_date(arrival_event.get("date")),
-                TransitPort= ", ".join(transit_ports) if transit_ports else None,
-                EtdTransit= None,
-                AtdTransit= self._format_date(ts_load_events[0].get('date')) if ts_load_events else None,
-                EtaTransit= None,
-                AtaTransit= self._format_date(ts_discharge_events[-1].get('date')) if ts_discharge_events else None
+                BookingStatus= booking_status or "",
+                Pol= pol or "",
+                Pod= pod or "",
+                Etd= "",
+                Atd= self._format_date(departure_event.get("date")) or "",
+                Eta= "",
+                Ata= self._format_date(arrival_event.get("date")) or "",
+                TransitPort= ", ".join(transit_ports) if transit_ports else "",
+                EtdTransit= "",
+                AtdTransit= self._format_date(ts_load_events[0].get('date')) if ts_load_events else "",
+                EtaTransit= "",
+                AtaTransit= self._format_date(ts_discharge_events[-1].get('date')) if ts_discharge_events else ""
             )
             return shipment_data
         except Exception as e:

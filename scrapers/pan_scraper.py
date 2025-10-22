@@ -126,18 +126,18 @@ class PanScraper(BaseScraper):
             shipment_data = N8nTrackingInfo(
                 BookingNo= booking_no or tracking_number,
                 BlNumber= bl_number or tracking_number,
-                BookingStatus= None,
-                Pol= pol,
-                Pod= pod,
-                Etd= None,
-                Atd= self._format_date(atd),
-                Eta= None,
-                Ata= self._format_date(ata),
-                TransitPort= transit_port,
-                EtdTransit= None,
-                AtdTransit= self._format_date(atd_transit),
-                EtaTransit= None,
-                AtaTransit= self._format_date(ata_transit)
+                BookingStatus= "",
+                Pol= pol or "",
+                Pod= pod or "",
+                Etd= "",
+                Atd= self._format_date(atd) or "",
+                Eta= "",
+                Ata= self._format_date(ata) or "",
+                TransitPort= transit_port or "",
+                EtdTransit= "",
+                AtdTransit= self._format_date(atd_transit) or "",
+                EtaTransit= "",
+                AtaTransit= self._format_date(ata_transit) or ""
             ) 
             return shipment_data
 
