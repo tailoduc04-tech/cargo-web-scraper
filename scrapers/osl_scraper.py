@@ -8,6 +8,7 @@ import traceback
 import time
 
 from .base_scraper import BaseScraper
+from schemas import N8nTrackingInfo
 
 class OslScraper(BaseScraper):
     """
@@ -146,22 +147,39 @@ class OslScraper(BaseScraper):
                         ts_load_events.append(event)
 
             # --- Xây dựng đối tượng JSON cuối cùng ---
-            shipment_data = {
-                "BookingNo": tracking_number,
-                "BlNumber": bl_number,
-                "BookingStatus": booking_status,
-                "Pol": pol,
-                "Pod": pod,
-                "Etd": None,
-                "Atd": self._format_date(departure_event.get("date")),
-                "Eta": None,
-                "Ata": self._format_date(arrival_event.get("date")),
-                "TransitPort": ", ".join(transit_ports) if transit_ports else None,
-                "EtdTransit": None,
-                "AtdTrasit": self._format_date(ts_load_events[0].get('date')) if ts_load_events else None,
-                "EtaTransit": None,
-                "AtaTrasit": self._format_date(ts_discharge_events[-1].get('date')) if ts_discharge_events else None,
-            }
+            #shipment_data = {
+            #    "BookingNo": tracking_number,
+            #    "BlNumber": bl_number,
+            #    "BookingStatus": booking_status,
+            #    "Pol": pol,
+            #    "Pod": pod,
+            #    "Etd": None,
+            #    "Atd": self._format_date(departure_event.get("date")),
+            #    "Eta": None,
+            #    "Ata": self._format_date(arrival_event.get("date")),
+            #    "TransitPort": ", ".join(transit_ports) if transit_ports else None,
+            #    "EtdTransit": None,
+            #    "AtdTrasit": self._format_date(ts_load_events[0].get('date')) if ts_load_events else None,
+            #    "EtaTransit": None,
+            #    "AtaTrasit": self._format_date(ts_discharge_events[-1].get('date')) if ts_discharge_events else None,
+            #}
+            
+            shipment_data = N8nTrackingInfo(
+                BookingNo= tracking_number,
+                BlNumber= bl_number,
+                BookingStatus= booking_status,
+                Pol= pol,
+                Pod= pod,
+                Etd= None,
+                Atd= self._format_date(departure_event.get("date")),
+                Eta= None,
+                Ata= self._format_date(arrival_event.get("date")),
+                TransitPort= ", ".join(transit_ports) if transit_ports else None,
+                EtdTransit= None,
+                AtdTransit= self._format_date(ts_load_events[0].get('date')) if ts_load_events else None,
+                EtaTransit= None,
+                AtaTransit= self._format_date(ts_discharge_events[-1].get('date')) if ts_discharge_events else None
+            )
             return shipment_data
         except Exception as e:
             print(f"    [OCL Scraper] Lỗi trong quá trình trích xuất: {e}")

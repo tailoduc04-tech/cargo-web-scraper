@@ -8,6 +8,7 @@ import traceback
 import time
 
 from .base_scraper import BaseScraper
+from schemas import N8nTrackingInfo
 
 class OneScraper(BaseScraper):
     """
@@ -158,22 +159,39 @@ class OneScraper(BaseScraper):
                          atd_transit_event = event
 
             # --- 3. Xây dựng đối tượng JSON cuối cùng ---
-            shipment_data = {
-                "BookingNo": tracking_number,
-                "BlNumber": tracking_number,
-                "BookingStatus": None,
-                "Pol": pol,
-                "Pod": pod,
-                "Etd": None,
-                "Atd": self._format_date(atd_raw),
-                "Eta": self._format_date(eta_raw),
-                "Ata": self._format_date(ata_event.get("date")) if ata_event else None,
-                "TransitPort": ", ".join(transit_ports) if transit_ports else None,
-                "EtdTransit": None,
-                "AtdTrasit": self._format_date(atd_transit_event.get("date")) if atd_transit_event else None,
-                "EtaTransit": None,
-                "AtaTrasit": self._format_date(ata_transit_event.get("date")) if ata_transit_event else None
-            }
+            #shipment_data = {
+            #    "BookingNo": tracking_number,
+            #    "BlNumber": tracking_number,
+            #    "BookingStatus": None,
+            #    "Pol": pol,
+            #    "Pod": pod,
+            #    "Etd": None,
+            #    "Atd": self._format_date(atd_raw),
+            #    "Eta": self._format_date(eta_raw),
+            #    "Ata": self._format_date(ata_event.get("date")) if ata_event else None,
+            #    "TransitPort": ", ".join(transit_ports) if transit_ports else None,
+            #    "EtdTransit": None,
+            #    "AtdTrasit": self._format_date(atd_transit_event.get("date")) if atd_transit_event else None,
+            #    "EtaTransit": None,
+            #    "AtaTrasit": self._format_date(ata_transit_event.get("date")) if ata_transit_event else None
+            #}
+            
+            shipment_data = N8nTrackingInfo(
+                BookingNo= tracking_number,
+                BlNumber= tracking_number,
+                BookingStatus= None,
+                Pol= pol,
+                Pod= pod,
+                Etd= None,
+                Atd= self._format_date(atd_raw),
+                Eta= self._format_date(eta_raw),
+                Ata= self._format_date(ata_event.get("date")) if ata_event else None,
+                TransitPort= ", ".join(transit_ports) if transit_ports else None,
+                EtdTransit= None,
+                AtdTransit= self._format_date(atd_transit_event.get("date")) if atd_transit_event else None,
+                EtaTransit= None,
+                AtaTransit= self._format_date(ata_transit_event.get("date")) if ata_transit_event else None
+            )
             
             print("[ONE Scraper] --- Hoàn tất, đã chuẩn hóa dữ liệu ---")
             return shipment_data

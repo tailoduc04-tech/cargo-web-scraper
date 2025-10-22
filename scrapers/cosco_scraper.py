@@ -8,6 +8,7 @@ import traceback
 import re
 
 from .base_scraper import BaseScraper
+from schemas import N8nTrackingInfo
 
 class CoscoScraper(BaseScraper):
     """
@@ -187,22 +188,23 @@ class CoscoScraper(BaseScraper):
                 atd_transit = self._extract_schedule_date(departure_from_transit_cell, 'Actual')
 
             # === BƯỚC 3: TẠO ĐỐI TƯỢNG JSON CHUẨN HÓA ===
-            shipment_data = {
-                "BookingNo": booking_no.strip(),
-                "BlNumber": bl_number.strip(),
-                "BookingStatus": booking_status.strip(),
-                "Pol": pol.strip(),
-                "Pod": pod.strip(),
-                "Etd": self._format_date(etd),
-                "Atd": self._format_date(atd),
-                "Eta": self._format_date(eta),
-                "Ata": self._format_date(ata),
-                "TransitPort": transit_port.strip() if transit_port else None,
-                "EtdTransit": self._format_date(etd_transit),
-                "AtdTransit": self._format_date(atd_transit),
-                "EtaTransit": self._format_date(eta_transit),
-                "AtaTransit": self._format_date(ata_transit)
-            }
+            
+            shipment_data = N8nTrackingInfo(
+                BookingNo= booking_no.strip(),
+                BlNumber= bl_number.strip(),
+                BookingStatus= booking_status.strip(),
+                Pol= pol.strip(),
+                Pod= pod.strip(),
+                Etd= self._format_date(etd),
+                Atd= self._format_date(atd),
+                Eta= self._format_date(eta),
+                Ata= self._format_date(ata),
+                TransitPort= transit_port.strip() if transit_port else None,
+                EtdTransit= self._format_date(etd_transit),
+                AtdTransit= self._format_date(atd_transit),
+                EtaTransit= self._format_date(eta_transit),
+                AtaTransit= self._format_date(ata_transit)
+            )
             
             return shipment_data
 

@@ -8,6 +8,7 @@ import re
 import traceback
 
 from .base_scraper import BaseScraper
+from schemas import N8nTrackingInfo
 
 class SinokorScraper(BaseScraper):
     """
@@ -108,22 +109,39 @@ class SinokorScraper(BaseScraper):
                     transit_ports.append(location)
 
         # 5. Xây dựng đối tượng JSON theo template
-        shipment_data = {
-            "BookingNo": tracking_number,
-            "BlNumber": bl_no,
-            "BookingStatus": booking_status,
-            "Pol": pol,
-            "Pod": pod,
-            "Etd": self._format_date(etd),
-            "Atd": self._format_date(actual_departure.get('date')) if actual_departure else None,
-            "Eta": self._format_date(eta),
-            "Ata": self._format_date(actual_arrival.get('date')) if actual_arrival else None,
-            "TransitPort": ", ".join(transit_ports) if transit_ports else None,
-            "EtdTransit": None, # Logic phức tạp hơn nếu có nhiều cảng, tạm thời để None
-            "AtdTrasit": None, # Logic phức tạp hơn nếu có nhiều cảng, tạm thời để None
-            "EtaTransit": None, # Logic phức tạp hơn nếu có nhiều cảng, tạm thời để None
-            "AtaTrasit": None  # Logic phức tạp hơn nếu có nhiều cảng, tạm thời để None
-        }
+        #shipment_data = {
+        #    "BookingNo": tracking_number,
+        #    "BlNumber": bl_no,
+        #    "BookingStatus": booking_status,
+        #    "Pol": pol,
+        #    "Pod": pod,
+        #    "Etd": self._format_date(etd),
+        #    "Atd": self._format_date(actual_departure.get('date')) if actual_departure else None,
+        #    "Eta": self._format_date(eta),
+        #    "Ata": self._format_date(actual_arrival.get('date')) if actual_arrival else None,
+        #    "TransitPort": ", ".join(transit_ports) if transit_ports else None,
+        #    "EtdTransit": None, # Logic phức tạp hơn nếu có nhiều cảng, tạm thời để None
+        #    "AtdTrasit": None, # Logic phức tạp hơn nếu có nhiều cảng, tạm thời để None
+        #    "EtaTransit": None, # Logic phức tạp hơn nếu có nhiều cảng, tạm thời để None
+        #    "AtaTrasit": None  # Logic phức tạp hơn nếu có nhiều cảng, tạm thời để None
+        #}
+        
+        shipment_data = N8nTrackingInfo(
+            BookingNo= tracking_number,
+            BlNumber= bl_no,
+            BookingStatus= booking_status,
+            Pol= pol,
+            Pod= pod,
+            Etd= self._format_date(etd),
+            Atd= self._format_date(actual_departure.get('date')) if actual_departure else None,
+            Eta= self._format_date(eta),
+            Ata= self._format_date(actual_arrival.get('date')) if actual_arrival else None,
+            TransitPort= ", ".join(transit_ports) if transit_ports else None,
+            EtdTransit= None,
+            AtdTransit= None,
+            EtaTransit= None,
+            AtaTransit= None
+        )
         
         return shipment_data
 

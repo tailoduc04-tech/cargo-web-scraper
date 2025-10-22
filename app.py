@@ -6,6 +6,8 @@ from fastapi.responses import JSONResponse
 import config
 import driver_setup
 import scrapers
+from schemas import N8nTrackingInfo, Result
+from typing import Tuple, Optional
 
 app = FastAPI()
 
@@ -13,7 +15,7 @@ app = FastAPI()
 if not os.path.exists("output"):
     os.makedirs("output")
 
-def run_scraping_task(scraper_name: str, tracking_number: str):
+def run_scraping_task(scraper_name: str, tracking_number: str) -> Tuple[Optional[N8nTrackingInfo], Optional[str]]:
     """
     Trả về dữ liệu thô và thông báo lỗi.
     """
@@ -30,30 +32,22 @@ def run_scraping_task(scraper_name: str, tracking_number: str):
 
         data, error = scraper_instance.scrape(tracking_number)
 
-        if error:
-            print(f"Failed to scrape: {error}")
+        if isinstance(data, N8nTrackingInfo): # Kiểm tra kiểu trả về nếu cần
+         return data, None
+        elif data is None and error:
             return None, error
-
-        if not data:
+        elif data is None and not error:
             return None, f"Scraping for '{tracking_number}' on {scraper_name} returned no data."
-
-        print(f"Successfully scraped data for '{tracking_number}'.")
-
-        # Hàm scrape giờ đã trả về dictionary trực tiếp
-        if isinstance(data, dict):
-            return data, None
         else:
-             # Trường hợp hiếm hoi scraper cũ trả về dạng khác
-             print(f"Warning: Scraper returned unexpected data type: {type(data)}")
-             return None, "Scraper returned unexpected data format."
+            print(f"Warning: Scraper returned unexpected data type: {type(data)}")
+            # Trả về lỗi nếu kiểu dữ liệu không đúng mong đợi
+            return None, "Scraper returned unexpected data format."
 
 
     finally:
         if driver:
             print("Closing browser.")
             driver.quit()
-
-    return None, "An unknown error occurred during the scraping task."
 
 # --- Endpoint để lấy danh sách services ---
 @app.get("/api/v1/services")
@@ -67,37 +61,38 @@ async def get_available_services():
     return JSONResponse(content={"services": available_services})
 
 # --- Endpoint để thực hiện scrape web
-@app.post("/api/v1/track")
+# app.py
+@app.post("/api/v1/track", response_model=Result) # Thêm response_model
 async def track(bl_number: str = Form(...), service_name: str = Form(...)):
-    """
-    API endpoint để tra cứu mã vận đơn trên một dịch vụ cụ thể.
-    """
     if service_name not in scrapers.SCRAPERS.keys():
-        return JSONResponse(
-            status_code=400,
-            content={
-                "success": False,
-                "message": f"service_name phải nằm trong danh sách sau: {list(scrapers.SCRAPERS.keys())}"
-            }
+        # Trả về lỗi theo schema Result
+        return Result(
+            Error=True,
+            Message=f"service_name phải nằm trong danh sách sau: {list(scrapers.SCRAPERS.keys())}",
+            Status=400,
+            MessageStatus="Bad Request"
         )
 
     data, error = run_scraping_task(service_name, bl_number)
 
     if error or not data:
         message = error or f"Không tìm thấy thông tin cho mã '{bl_number}' trên trang {service_name}."
-        # Trả về 404 nếu không có dữ liệu, 500 nếu có lỗi khác
         status_code = 404 if "Không tìm thấy" in message or "returned no data" in message else 500
-        return JSONResponse(
-            status_code=status_code,
-            content={"success": False, "message": message}
-        )
+        response_content = Result(
+            Error=True,
+            Message=message,
+            Status=status_code,
+            MessageStatus="Error"
+        ).model_dump(exclude_none=True) # Dùng model_dump thay vì dict() trong Pydantic v2
 
-    # Trả về kết quả thành công, bao gồm cả source và data
-    return JSONResponse(
-        content={
-            "success": True,
-            "message": f"Đã tìm thấy thông tin trên trang: {service_name}",
-            "source": service_name,
-            **data # Giải nén dictionary data vào response
-        }
+        return JSONResponse(status_code=status_code, content=response_content)
+
+
+    # Trả về thành công theo schema Result
+    return Result(
+        ResultData=data,
+        Error=False,
+        Message=f"Đã tìm thấy thông tin trên trang: {service_name}",
+        Status=200,
+        MessageStatus="Success"
     )

@@ -8,6 +8,7 @@ import traceback
 import time
 
 from .base_scraper import BaseScraper
+from schemas import N8nTrackingInfo
 
 class SealeadScraper(BaseScraper):
     """
@@ -126,22 +127,39 @@ class SealeadScraper(BaseScraper):
                     print("[SeaLead Scraper] Cảnh báo: Không tìm thấy chi tiết container để lấy Ata.")
 
             # --- 4. Xây dựng đối tượng JSON ---
-            shipment_data = {
-                "BookingNo": bl_number,
-                "BlNumber": bl_number,
-                "BookingStatus": None,
-                "Pol": pol,
-                "Pod": pod,
-                "Etd": self._format_date(etd),
-                "Atd": None, # Không có thông tin
-                "Eta": self._format_date(eta),
-                "Ata": self._format_date(ata),
-                "TransitPort": transit_port,
-                "EtdTransit": self._format_date(etd_transit),
-                "AtdTrasit": None, # Không có thông tin
-                "EtaTransit": self._format_date(eta_transit),
-                "AtaTrasit": None, # Không có thông tin
-            }
+            #shipment_data = {
+            #    "BookingNo": bl_number,
+            #    "BlNumber": bl_number,
+            #    "BookingStatus": None,
+            #    "Pol": pol,
+            #    "Pod": pod,
+            #    "Etd": self._format_date(etd),
+            #    "Atd": None, # Không có thông tin
+            #    "Eta": self._format_date(eta),
+            #    "Ata": self._format_date(ata),
+            #    "TransitPort": transit_port,
+            #    "EtdTransit": self._format_date(etd_transit),
+            #    "AtdTrasit": None, # Không có thông tin
+            #    "EtaTransit": self._format_date(eta_transit),
+            #    "AtaTrasit": None, # Không có thông tin
+            #}
+            
+            shipment_data = N8nTrackingInfo(
+                BookingNo= bl_number,
+                BlNumber= bl_number,
+                BookingStatus= None,
+                Pol= pol,
+                Pod= pod,
+                Etd= self._format_date(etd),
+                Atd= None,
+                Eta= self._format_date(eta),
+                Ata= self._format_date(ata),
+                TransitPort= transit_port,
+                EtdTransit= self._format_date(etd_transit),
+                AtdTransit= None,
+                EtaTransit= self._format_date(eta_transit),
+                AtaTransit= None
+            )
             return shipment_data
 
         except Exception as e:

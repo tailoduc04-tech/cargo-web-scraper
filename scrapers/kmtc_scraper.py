@@ -8,6 +8,7 @@ import traceback
 import time
 
 from .base_scraper import BaseScraper
+from schemas import N8nTrackingInfo
 
 class KmtcScraper(BaseScraper):
     """
@@ -133,22 +134,39 @@ class KmtcScraper(BaseScraper):
             atd_transit = None
 
             # --- 4. Xây dựng đối tượng JSON cuối cùng ---
-            normalized_data = {
-                "BookingNo": booking_no or tracking_number,
-                "BlNumber": bl_number or tracking_number,
-                "BookingStatus": booking_status,
-                "Pol": pol,
-                "Pod": pod,
-                "Etd": self._format_kmtc_date(etd),
-                "Atd": self._format_kmtc_date(departure_event.get('date')),
-                "Eta": self._format_kmtc_date(eta),
-                "Ata": self._format_kmtc_date(arrival_event.get('date')),
-                "TransitPort": transit_port,
-                "EtdTransit": None,
-                "AtdTrasit": self._format_kmtc_date(atd_transit),
-                "EtaTransit": None,
-                "AtaTrasit": self._format_kmtc_date(ata_transit),
-            }
+            #normalized_data = {
+            #    "BookingNo": booking_no or tracking_number,
+            #    "BlNumber": bl_number or tracking_number,
+            #    "BookingStatus": booking_status,
+            #    "Pol": pol,
+            #    "Pod": pod,
+            #    "Etd": self._format_kmtc_date(etd),
+            #    "Atd": self._format_kmtc_date(departure_event.get('date')),
+            #    "Eta": self._format_kmtc_date(eta),
+            #    "Ata": self._format_kmtc_date(arrival_event.get('date')),
+            #    "TransitPort": transit_port,
+            #    "EtdTransit": None,
+            #    "AtdTrasit": self._format_kmtc_date(atd_transit),
+            #    "EtaTransit": None,
+            #    "AtaTrasit": self._format_kmtc_date(ata_transit),
+            #}
+            
+            normalized_data = N8nTrackingInfo(
+                BookingNo= booking_no or tracking_number,
+                BlNumber= bl_number or tracking_number,
+                BookingStatus= booking_status,
+                Pol= pol,
+                Pod= pod,
+                Etd= self._format_kmtc_date(etd),
+                Atd= self._format_kmtc_date(departure_event.get('date')),
+                Eta= self._format_kmtc_date(eta),
+                Ata= self._format_kmtc_date(arrival_event.get('date')),
+                TransitPort= transit_port,
+                EtdTransit= None,
+                AtdTransit= self._format_kmtc_date(atd_transit),
+                EtaTransit= None,
+                AtaTransit= self._format_kmtc_date(ata_transit)
+            )
             
             print("[KMTC Scraper] --- Hoàn tất, đã chuẩn hóa dữ liệu ---")
             return normalized_data

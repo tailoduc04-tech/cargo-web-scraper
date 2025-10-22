@@ -4,6 +4,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException, NoSuchElementException
+from schemas import N8nTrackingInfo
 import traceback
 
 from .base_scraper import BaseScraper
@@ -19,7 +20,6 @@ class CordeliaScraper(BaseScraper):
         và trả về ở định dạng JSON chuẩn hóa.
         """
         try:
-            # URL đã chứa sẵn phần truy vấn, chúng ta chỉ cần nối thêm số B/L vào cuối
             url = f"{self.config['url']}{tracking_number}"
             self.driver.get(url)
             self.wait = WebDriverWait(self.driver, 30)
@@ -83,24 +83,23 @@ class CordeliaScraper(BaseScraper):
             transit_port = None
             if "leg" in current_status.lower():
                 transit_port = current_location
-
-            # Tạo cấu trúc JSON
-            shipment_data = {
-                "BookingNo": None,  # Không có trên trang
-                "BlNumber": bl_number,
-                "BookingStatus": current_status,
-                "Pol": pol,
-                "Pod": pod,
-                "Etd": None,  # Thời gian khởi hành dự kiến không được cung cấp
-                "Atd": sob_date,
-                "Eta": eta_fpod,
-                "Ata": None,  # Thời gian đến thực tế không được cung cấp
-                "TransitPort": transit_port,
-                "EtdTransit": None, # Không có
-                "AtdTransit": None, # Không có
-                "EtaTransit": None, # Không có
-                "AtaTransit": None # Không có
-            }
+            
+            shipment_data = N8nTrackingInfo(
+                BookingNo= None,
+                BlNumber=bl_number,
+                BookingStatus= current_status,
+                Pol= pol,
+                Pod=pod,
+                Etd=None,
+                Atd=sob_date,
+                Eta=eta_fpod,
+                Ata=None,
+                TransitPort= transit_port,
+                EtdTransit=None,
+                AtdTransit=None,
+                EtaTransit=None,
+                AtaTransit=None
+            )
             
             return shipment_data
 
