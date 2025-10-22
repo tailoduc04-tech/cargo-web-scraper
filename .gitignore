@@ -211,3 +211,4 @@ __marimo__/
 test_local.py
 res.json
 clean_html.py
+prompt.txt

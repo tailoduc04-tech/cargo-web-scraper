@@ -19,7 +19,6 @@ class BaseScraper(ABC):
         self.wait = None
 
     @abstractmethod
-    @abstractmethod
     def scrape(self, tracking_number: str) -> Tuple[Optional[N8nTrackingInfo], Optional[str]]:
         """
         Phương thức scraping chính.

@@ -8,6 +8,12 @@ import driver_setup
 import scrapers
 from schemas import N8nTrackingInfo, Result
 from typing import Tuple, Optional
+import logging
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+)
 
 app = FastAPI()
 
