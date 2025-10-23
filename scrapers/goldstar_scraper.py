@@ -17,7 +17,6 @@ class GoldstarScraper(BaseScraper):
     """
     Triển khai logic scraping cụ thể cho trang Gold Star Line và chuẩn hóa kết quả
     theo template JSON yêu cầu.
-    Đã được cập nhật để sử dụng logging, logic chuẩn hóa mới và xử lý transit.
     """
 
     def _format_date(self, date_str):

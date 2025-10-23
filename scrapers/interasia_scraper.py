@@ -91,7 +91,6 @@ class InterasiaScraper(BaseScraper):
     def _extract_and_normalize_data(self, detail_url, tracking_number):
         """
         Scrape trang chi tiết B/L (từ detail_url), trích xuất và chuẩn hóa dữ liệu.
-        Hàm này tương ứng với _scrape_and_normalize_details của file cũ.
         """
         logger.info("Bắt đầu trích xuất dữ liệu từ trang chi tiết: %s", detail_url)
         try:

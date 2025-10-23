@@ -17,8 +17,6 @@ class SealeadScraper(BaseScraper):
     """
     Triển khai logic scraping cụ thể cho trang web SeaLead và chuẩn hóa kết quả
     theo định dạng JSON yêu cầu.
-    Đã cập nhật (23/10/2025) để sử dụng logging, logic transit chuẩn
-    và đảm bảo 14 trường dữ liệu.
     """
 
     def _format_date(self, date_str):
@@ -84,7 +82,6 @@ class SealeadScraper(BaseScraper):
     def _extract_and_normalize_data(self, tracking_number):
         """
         Trích xuất dữ liệu từ trang kết quả và ánh xạ vào template JSON.
-        Áp dụng logic chuẩn hóa 14 trường và xử lý transit.
         """
         try:
             # === BƯỚC 1: KHỞI TẠO BIẾN ===

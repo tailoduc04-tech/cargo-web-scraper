@@ -16,8 +16,7 @@ logger = logging.getLogger(__name__)
 class MaerskScraper(BaseScraper):
     """
     Triển khai logic scraping cụ thể cho trang Maersk.
-    Sử dụng phương pháp truy cập URL trực tiếp, logging,
-    và logic transit nâng cao.
+    Sử dụng phương pháp truy cập URL trực tiếp
     """
 
     def _format_date(self, date_str):
@@ -110,7 +109,6 @@ class MaerskScraper(BaseScraper):
     def _extract_and_normalize_data(self, tracking_number):
         """
         Trích xuất, xử lý và chuẩn hóa dữ liệu thành một dictionary duy nhất
-        dựa trên logic hoạt động mới.
         """
         try:
             # 1. Trích xuất thông tin tóm tắt chung

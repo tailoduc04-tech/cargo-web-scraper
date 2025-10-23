@@ -18,9 +18,6 @@ class PanScraper(BaseScraper):
     """
     Triển khai logic scraping cụ thể cho trang Pan Continental Shipping
     và chuẩn hóa kết quả theo template JSON yêu cầu.
-    
-    Sử dụng logging và logic xử lý transit/ngày tháng (Actual/Expected)
-    tương tự như CoscoScraper.
     """
 
     def _format_date(self, date_str):
@@ -112,8 +109,6 @@ class PanScraper(BaseScraper):
     def _extract_and_normalize_data(self, tracking_number):
         """
         Trích xuất dữ liệu từ trang kết quả và ánh xạ vào template JSON.
-        Áp dụng logic Actual/Expected dựa trên ngày hiện tại và xử lý transit
-        nhiều chặng.
         """
         try:
             bl_number = self._get_text_by_id("bl_no")

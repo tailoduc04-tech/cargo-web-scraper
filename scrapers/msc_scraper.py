@@ -17,7 +17,6 @@ class MscScraper(BaseScraper):
     """
     Triển khai logic scraping cụ thể cho trang web MSC,
     tập trung vào tìm kiếm theo Booking Number và chuẩn hóa kết quả theo template JSON.
-    Sử dụng logging và logic xử lý transit tương tự CoscoScraper.
     """
 
     def _format_date(self, date_str):
@@ -213,7 +212,6 @@ class MscScraper(BaseScraper):
     def _extract_and_normalize_data(self, booking_no):
         """
         Trích xuất và chuẩn hóa dữ liệu từ trang kết quả thành một đối tượng N8nTrackingInfo.
-        Áp dụng logic tìm transit tương tự COSCO.
         """
         try:
             # === BƯỚC 1: LẤY THÔNG TIN TÓM TẮT CHUNG ===

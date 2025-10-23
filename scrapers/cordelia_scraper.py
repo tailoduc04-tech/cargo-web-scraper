@@ -15,7 +15,6 @@ logger = logging.getLogger(__name__)
 class CordeliaScraper(BaseScraper):
     """
     Triển khai logic scraping cụ thể cho trang Cordelia Line và chuẩn hóa kết quả.
-    (Đã refactor theo mẫu COSCO)
     """
 
     def _format_date(self, date_str):

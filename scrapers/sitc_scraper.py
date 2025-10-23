@@ -1,14 +1,16 @@
+import logging
 import pandas as pd
-from datetime import datetime
+from datetime import datetime, date
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException, NoSuchElementException
-import traceback
 import time
 
 from .base_scraper import BaseScraper
 from schemas import N8nTrackingInfo
+
+logger = logging.getLogger(__name__)
 
 class SitcScraper(BaseScraper):
     """
@@ -21,159 +23,211 @@ class SitcScraper(BaseScraper):
         Chuyển đổi chuỗi ngày từ 'YYYY-MM-DD ...' sang 'DD/MM/YYYY'.
         Nếu không chuyển được, trả về None.
         """
-        if not date_str:
+        if not date_str or not isinstance(date_str, str):
             return None
         try:
-            # Lấy phần ngày tháng, bỏ qua phần giờ
+            # Lấy phần ngày tháng, bỏ qua phần giờ nếu có
             date_part = date_str.split(" ")[0]
+            if not date_part:
+                return None
             dt_obj = datetime.strptime(date_part, '%Y-%m-%d')
             return dt_obj.strftime('%d/%m/%Y')
         except (ValueError, IndexError):
-            return None # Trả về None nếu định dạng không hợp lệ
-
-    def _get_date_from_cell(self, cell):
-        """
-        Trích xuất ngày và xác định xem đó là ngày thực tế (màu đỏ) hay dự kiến.
-        Trả về một tuple (date_string, is_actual).
-        """
-        try:
-            # Ngày có màu thường nằm trong thẻ span
-            span = cell.find_element(By.TAG_NAME, "span")
-            date_str = span.text.strip()
-            # Font màu đỏ chỉ ra ngày thực tế
-            is_actual = "color: red" in span.get_attribute("style")
-            return date_str, is_actual
-        except NoSuchElementException:
-            # Nếu không có thẻ span, đó là ngày dự kiến trong cột Schedule
-            return cell.text.strip(), False
+            logger.warning("Không thể phân tích định dạng ngày: %s", date_str)
+            return None # Trả về None, sẽ được chuẩn hóa thành "" sau
 
     def scrape(self, tracking_number):
-        print(f"[SITC Scraper] Bắt đầu scrape cho mã: {tracking_number}")
+        """
+        Phương thức scrape chính. Thực hiện tìm kiếm và trả về dữ liệu đã chuẩn hóa.
+        """
+        logger.info("Bắt đầu scrape cho mã: %s", tracking_number)
         try:
-            print("[SITC Scraper] 1. Điều hướng đến URL...")
+            logger.info("1. Điều hướng đến URL: %s", self.config['url'])
             self.driver.get(self.config['url'])
-            self.wait = WebDriverWait(self.driver, 30)
+            self.wait = WebDriverWait(self.driver, 30) # Chờ tối đa 30s
 
-            print("[SITC Scraper] 2. Điền thông tin vào form tìm kiếm...")
+            logger.info("2. Điền thông tin vào form tìm kiếm...")
+            # Selector này nhắm vào input thứ 2 trong form, sau dropdown
             search_input = self.wait.until(
-                EC.element_to_be_clickable((By.CSS_SELECTOR, "form.search-form input[placeholder='B/L No.']"))
+                EC.element_to_be_clickable((By.CSS_SELECTOR, "form.search-form div.el-col:nth-child(2) input.el-input__inner"))
             )
             search_input.clear()
             search_input.send_keys(tracking_number)
-            print(f"-> Đã điền mã: {tracking_number}")
+            logger.info("-> Đã điền mã: %s", tracking_number)
 
-            search_button = self.driver.find_element(By.CSS_SELECTOR, "form.search-form button")
+            search_button = self.driver.find_element(By.CSS_SELECTOR, "form.search-form button.btn-primary")
+            # Dùng execute_script để click an toàn hơn
             self.driver.execute_script("arguments[0].click();", search_button)
-            print("-> Đã nhấn nút tìm kiếm.")
+            logger.info("-> Đã nhấn nút tìm kiếm.")
 
-            print("[SITC Scraper] 3. Chờ trang kết quả tải...")
+            logger.info("3. Chờ trang kết quả tải...")
+            # Chờ cho đến khi thấy tiêu đề "Basic Information"
             self.wait.until(
                 EC.visibility_of_element_located((By.XPATH, "//h4[text()='Basic Information']"))
             )
-            print(f"-> Trang kết quả cho '{tracking_number}' đã tải xong.")
+            logger.info("-> Trang kết quả cho '%s' đã tải xong.", tracking_number)
+            # Chờ thêm 2s để đảm bảo mọi thứ render xong (giữ lại từ code cũ)
             time.sleep(2)
 
-            print("[SITC Scraper] 4. Bắt đầu trích xuất và chuẩn hóa dữ liệu...")
+            logger.info("4. Bắt đầu trích xuất và chuẩn hóa dữ liệu...")
             normalized_data = self._extract_and_normalize_data(tracking_number)
 
             if not normalized_data:
-                print(f"[SITC Scraper] Lỗi: Không thể trích xuất dữ liệu cho '{tracking_number}'.")
+                logger.error("Không thể trích xuất dữ liệu đã chuẩn hóa cho '%s'.", tracking_number)
                 return None, f"Không thể trích xuất dữ liệu đã chuẩn hóa cho '{tracking_number}'."
 
-            print("[SITC Scraper] 5. Trả về kết quả thành công.")
-            # Trả về một dictionary duy nhất theo yêu cầu
+            logger.info("5. Hoàn tất scrape thành công cho mã: %s", tracking_number)
             return normalized_data, None
 
         except TimeoutException:
-            print(f"[SITC Scraper] Lỗi: TimeoutException xảy ra cho mã '{tracking_number}'.")
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             screenshot_path = f"output/sitc_timeout_{tracking_number}_{timestamp}.png"
             try:
                 self.driver.save_screenshot(screenshot_path)
-                print(f"  -> Đã lưu ảnh chụp màn hình vào {screenshot_path}")
+                logger.warning("Timeout khi scrape mã '%s'. Đã lưu ảnh chụp màn hình vào %s", tracking_number, screenshot_path)
             except Exception as ss_e:
-                print(f"  -> Lỗi: Không thể lưu ảnh chụp màn hình: {ss_e}")
+                logger.error("Không thể lưu ảnh chụp màn hình khi bị timeout cho mã '%s': %s", tracking_number, ss_e)
             return None, f"Không tìm thấy kết quả cho '{tracking_number}' (Timeout)."
         except Exception as e:
-            print(f"[SITC Scraper] Lỗi: Đã xảy ra lỗi không mong muốn cho '{tracking_number}': {e}")
-            traceback.print_exc()
+            logger.error("Đã xảy ra lỗi không mong muốn khi scrape mã '%s': %s", tracking_number, e, exc_info=True)
             return None, f"Lỗi không xác định khi scrape '{tracking_number}': {e}"
 
+
     def _extract_and_normalize_data(self, tracking_number):
-        print("[SITC Scraper] --- Bắt đầu _extract_and_normalize_data ---")
+        """
+        Trích xuất và chuẩn hóa dữ liệu từ trang kết quả của SITC.
+        Áp dụng logic transit tương tự COSCO.
+        """
+        logger.info("--- Bắt đầu _extract_and_normalize_data ---")
         try:
-            # 1. Trích xuất thông tin cơ bản
+            # === BƯỚC 1: LẤY THÔNG TIN TÓM TẮT ===
+
+            # 1.1. Lấy B/L No từ bảng Basic Info
             basic_info_table = self.wait.until(EC.presence_of_element_located((By.XPATH, "//h4[text()='Basic Information']/following-sibling::div[contains(@class, 'el-table')]")))
             bl_number = basic_info_table.find_element(By.CSS_SELECTOR, "tbody tr td:nth-child(1)").text.strip()
-            pol = basic_info_table.find_element(By.CSS_SELECTOR, "tbody tr td:nth-child(2)").text.strip()
-            pod = basic_info_table.find_element(By.CSS_SELECTOR, "tbody tr td:nth-child(3)").text.strip()
+            # Giả định BookingNo giống BlNumber vì không có trường riêng
+            booking_no = bl_number
+            logger.info("Đã tìm thấy BlNumber: %s", bl_number)
 
-            # 2. Trích xuất lịch trình
+            # 1.2. Lấy BookingStatus từ bảng Container (lấy status của cont đầu tiên)
+            booking_status = ""
+            try:
+                status_xpath = "//h4[text()='Containers Information']/following-sibling::div[contains(@class, 'el-table')]//tbody/tr[1]/td[9]//span"
+                booking_status = self.driver.find_element(By.XPATH, status_xpath).text.strip()
+                logger.info("Đã tìm thấy BookingStatus: %s", booking_status)
+            except (NoSuchElementException, TimeoutException):
+                logger.warning("Không tìm thấy BookingStatus. Sẽ để trống.")
+
+            # === BƯỚC 2: LẤY THÔNG TIN TỪ BẢNG "SAILING SCHEDULE" ===
             schedule_table = self.wait.until(EC.presence_of_element_located((By.XPATH, "//div[h4[contains(text(), 'Sailing Schedule')]]/following-sibling::div[contains(@class, 'el-table')]")))
+            logger.info("Đã tìm thấy schedule_table")
             rows = schedule_table.find_elements(By.CSS_SELECTOR, "tbody tr")
 
             if not rows:
-                print("[SITC Scraper] Lỗi: Không tìm thấy chặng nào trong lịch trình.")
+                logger.warning("Không tìm thấy chặng nào trong Schedule Detail cho mã: %s", tracking_number)
                 return None
 
-            # Khởi tạo các biến
+            # Lấy POL từ chặng đầu tiên và POD từ chặng cuối cùng
+            pol = rows[0].find_elements(By.TAG_NAME, "td")[2].text.strip()
+            logger.info("Đã tìm thấy POL: %s", pol)
+            pod = rows[-1].find_elements(By.TAG_NAME, "td")[5].text.strip()
+            logger.info("Đã tìm thấy POD: %s", pod)
+
             etd, atd, eta, ata = None, None, None, None
-            etd_transit, atd_transit, transit_port, eta_transit, ata_transit = None, None, None, None, None
+            etd_transit_final, atd_transit, transit_port_list, eta_transit, ata_transit = None, None, [], None, None
 
-            # Xử lý chặng đầu tiên (POL)
+            # Xử lý chặng đầu tiên
             first_leg_cells = rows[0].find_elements(By.TAG_NAME, "td")
-            etd = first_leg_cells[3].text.strip()
-            etd_atd_val, etd_is_actual = self._get_date_from_cell(first_leg_cells[4])
-            if etd_is_actual:
-                atd = etd_atd_val
+            etd = first_leg_cells[3].text.strip() # Schedule ETD
+            atd = first_leg_cells[4].text.strip() # ETD/ATD (Actual)
 
-            # Xử lý chặng cuối cùng (POD)
+            # Xử lý chặng cuối
             last_leg_cells = rows[-1].find_elements(By.TAG_NAME, "td")
-            eta = last_leg_cells[6].text.strip()
-            eta_ata_val, eta_is_actual = self._get_date_from_cell(last_leg_cells[7])
-            if eta_is_actual:
-                ata = eta_ata_val
+            eta = last_leg_cells[6].text.strip() # Schedule ETA
+            ata = last_leg_cells[7].text.strip() # ETA/ATA (Actual)
+            
+            # Xử lý các chặng trung chuyển (Áp dụng logic COSCO)
+            future_etd_transits = []
+            today = date.today()
+            logger.info("Bắt đầu xử lý thông tin transit...")
 
-            # Xử lý cảng trung chuyển (nếu có)
-            if len(rows) > 1:
-                # Chỉ lấy cảng trung chuyển đầu tiên để phù hợp với template
-                transit_port = first_leg_cells[5].text.strip()
-                
-                # Arrival at Transit Port (cuối chặng 1)
-                eta_transit = first_leg_cells[6].text.strip()
-                ata_transit_val, ata_transit_is_actual = self._get_date_from_cell(first_leg_cells[7])
-                if ata_transit_is_actual:
-                    ata_transit = ata_transit_val
+            for i in range(len(rows) - 1):
+                current_leg_cells = rows[i].find_elements(By.TAG_NAME, "td")
+                next_leg_cells = rows[i+1].find_elements(By.TAG_NAME, "td")
 
-                # Departure from Transit Port (đầu chặng 2)
-                second_leg_cells = rows[1].find_elements(By.TAG_NAME, "td")
-                etd_transit = second_leg_cells[3].text.strip()
-                atd_transit_val, atd_transit_is_actual = self._get_date_from_cell(second_leg_cells[4])
-                if atd_transit_is_actual:
-                    atd_transit = atd_transit_val
+                # Cột [5] là POD của chặng hiện tại
+                current_pod = current_leg_cells[5].text.strip()
+                # Cột [2] là POL của chặng kế tiếp
+                next_pol = next_leg_cells[2].text.strip()
 
-            # 3. Xây dựng đối tượng JSON
+                # Nếu POD chặng này == POL chặng sau -> đây là cảng transit
+                if current_pod == next_pol and current_pod:
+                    logger.debug("Tìm thấy cảng transit '%s' giữa chặng %d và %d", current_pod, i, i+1)
+                    if current_pod not in transit_port_list:
+                         transit_port_list.append(current_pod)
+
+                    # Lấy thông tin đến cảng transit (từ chặng hiện tại)
+                    temp_eta_transit = current_leg_cells[6].text.strip() # Schedule ETA
+                    temp_ata_transit = current_leg_cells[7].text.strip() # ETA/ATA
+                    
+                    # Lấy AtaTransit/EtaTransit *đầu tiên* tìm thấy
+                    if temp_ata_transit and not ata_transit:
+                         ata_transit = temp_ata_transit
+                         logger.debug("Tìm thấy AtaTransit đầu tiên: %s", ata_transit)
+                    elif temp_eta_transit and not ata_transit and not eta_transit:
+                         eta_transit = temp_eta_transit
+                         logger.debug("Tìm thấy EtaTransit đầu tiên: %s", eta_transit)
+
+                    # Lấy thông tin rời cảng transit (từ chặng kế tiếp)
+                    temp_etd_transit_str = next_leg_cells[3].text.strip() # Schedule ETD
+                    temp_atd_transit = next_leg_cells[4].text.strip() # ETD/ATD
+
+                    # Lấy AtdTransit *cuối cùng* (mới nhất)
+                    if temp_atd_transit:
+                         atd_transit = temp_atd_transit
+                         logger.debug("Cập nhật AtdTransit cuối cùng: %s", atd_transit)
+
+                    # Thu thập các EtdTransit trong tương lai
+                    if temp_etd_transit_str:
+                        try:
+                            etd_transit_date = datetime.strptime(temp_etd_transit_str.split(' ')[0], '%Y-%m-%d').date()
+                            if etd_transit_date > today:
+                                future_etd_transits.append((etd_transit_date, current_pod, temp_etd_transit_str))
+                                logger.debug("Thêm ETD transit trong tương lai: %s (%s)", temp_etd_transit_str, current_pod)
+                        except (ValueError, IndexError):
+                            logger.warning("Không thể parse ETD transit: %s", temp_etd_transit_str)
+
+            # Sắp xếp và chọn EtdTransit gần nhất
+            if future_etd_transits:
+                future_etd_transits.sort()
+                etd_transit_final = future_etd_transits[0][2]
+                logger.info("ETD transit gần nhất trong tương lai được chọn: %s", etd_transit_final)
+            else:
+                 logger.info("Không tìm thấy ETD transit nào trong tương lai.")
+
+            # === BƯỚC 3: TẠO ĐỐI TƯỢNG JSON CHUẨN HÓA ===
+            # Đảm bảo mọi giá trị None đều trở thành ""
             shipment_data = N8nTrackingInfo(
-                BookingNo= tracking_number,
-                BlNumber= bl_number,
-                BookingStatus= "",
-                Pol= pol or "",
-                Pod= pod or "",
+                BookingNo= booking_no.strip(),
+                BlNumber= bl_number.strip(),
+                BookingStatus= booking_status.strip(),
+                Pol= pol.strip(),
+                Pod= pod.strip(),
                 Etd= self._format_date(etd) or "",
                 Atd= self._format_date(atd) or "",
                 Eta= self._format_date(eta) or "",
                 Ata= self._format_date(ata) or "",
-                TransitPort= transit_port or "",
-                EtdTransit= self._format_date(etd_transit) or "",
+                TransitPort= ", ".join(transit_port_list) if transit_port_list else "",
+                EtdTransit= self._format_date(etd_transit_final) or "",
                 AtdTransit= self._format_date(atd_transit) or "",
                 EtaTransit= self._format_date(eta_transit) or "",
                 AtaTransit= self._format_date(ata_transit) or ""
             )
-            
-            print("[SITC Scraper] --- Hoàn tất _extract_and_normalize_data ---")
+            logger.info("Đã tạo đối tượng N8nTrackingInfo thành công.")
+            logger.info("--- Hoàn tất _extract_and_normalize_data ---")
             return shipment_data
 
         except Exception as e:
-            print(f"[SITC Scraper] Lỗi trong quá trình trích xuất dữ liệu: {e}")
-            traceback.print_exc()
+            # Log lỗi cụ thể khi trích xuất
+            logger.error("Lỗi trong quá trình trích xuất chi tiết cho mã '%s': %s", tracking_number, e, exc_info=True)
             return None

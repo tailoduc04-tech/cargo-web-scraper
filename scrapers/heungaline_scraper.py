@@ -17,8 +17,6 @@ logger = logging.getLogger(__name__)
 def _split_location_and_datetime(input_string):
     """
     Tách chuỗi đầu vào thành (vị trí, ngày giờ).
-    Ví dụ: "Kwangyang\nKIT(한국국제터미널)\n2025-07-26 23:30"
-    -> ("Kwangyang\nKIT(한국국제터미널)", "2025-07-26 23:30")
     """
     if not input_string: 
         return None, None
@@ -39,7 +37,7 @@ def _split_location_and_datetime(input_string):
 class HeungALineScraper(BaseScraper):
     """
     Triển khai logic scraping cụ thể cho trang Heung-A Line và chuẩn hóa kết quả
-    theo định dạng JSON yêu cầu, áp dụng logic từ COSCO.
+    theo định dạng JSON yêu cầu
     """
 
     def _format_date(self, date_str):
@@ -167,7 +165,6 @@ class HeungALineScraper(BaseScraper):
     def _find_event(self, events, description_keyword, location_keyword):
         """
         Tìm một sự kiện cụ thể (ví dụ: 'Departure') tại một vị trí cụ thể.
-        Đã sửa đổi để so khớp linh hoạt bằng mã (ví dụ: 'KIT').
         """
         if not location_keyword: 
             logger.warning(f"Thiếu location_keyword khi tìm '{description_keyword}'")

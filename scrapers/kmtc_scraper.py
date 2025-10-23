@@ -213,7 +213,6 @@ class KmtcScraper(BaseScraper):
     def _extract_events_from_timeline(self):
         """
         Trích xuất tất cả các sự kiện từ biểu đồ tiến trình 'Current Location'.
-        (Đã refactor để sử dụng logging)
         """
         events = []
         try:
@@ -267,7 +266,6 @@ class KmtcScraper(BaseScraper):
     def _find_event(self, events, description_keyword, location_keyword=None):
         """
         Tìm một sự kiện cụ thể trong danh sách.
-        (Giữ nguyên logic, không cần thay đổi)
         """
         if not events: return {}
         

@@ -18,7 +18,6 @@ class PilScraper(BaseScraper):
     """
     Triển khai logic scraping cụ thể cho trang web PIL (Pacific International Lines)
     và chuẩn hóa kết quả đầu ra theo định dạng JSON yêu cầu.
-    Kế thừa cấu trúc và logic từ CoscoScraper.
     """
 
     def _format_date(self, date_str):
@@ -142,7 +141,7 @@ class PilScraper(BaseScraper):
         return summary_data
 
     def _expand_all_container_details(self):
-        """Tìm và nhấp vào tất cả các nút 'Trace' để hiển thị lịch sử chi tiết."""
+        """Tìm và nhấp vào nút 'Trace' đầu tiên để hiển thị lịch sử chi tiết."""
         logger.info("Bắt đầu mở rộng tất cả chi tiết container...")
         try:
             # Tìm tất cả các tbody chính chứa thông tin container (có class 'cont-numb')

@@ -18,7 +18,6 @@ class OneScraper(BaseScraper):
     """
     Triển khai logic scraping cụ thể cho trang Ocean Network Express (ONE)
     và chuẩn hóa kết quả theo định dạng JSON yêu cầu.
-    Đã được viết lại theo tiêu chuẩn của cosco_scraper.py.
     """
 
     def _format_date(self, date_str):
@@ -106,7 +105,6 @@ class OneScraper(BaseScraper):
     def _extract_and_normalize_data(self, tracking_number):
         """
         Trích xuất dữ liệu từ các phần đã được tải trên trang và ánh xạ vào template JSON.
-        Áp dụng logic phân tích chi tiết (giống COSCO) từ bảng sự kiện.
         """
         try:
             logger.info("--- Bắt đầu trích xuất và chuẩn hóa dữ liệu ---")
