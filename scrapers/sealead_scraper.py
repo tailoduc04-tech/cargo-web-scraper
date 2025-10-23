@@ -1,5 +1,6 @@
+import logging
 import pandas as pd
-from datetime import datetime
+from datetime import datetime, date
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
@@ -10,10 +11,14 @@ import time
 from .base_scraper import BaseScraper
 from schemas import N8nTrackingInfo
 
+logger = logging.getLogger(__name__)
+
 class SealeadScraper(BaseScraper):
     """
     Triển khai logic scraping cụ thể cho trang web SeaLead và chuẩn hóa kết quả
     theo định dạng JSON yêu cầu.
+    Đã cập nhật (23/10/2025) để sử dụng logging, logic transit chuẩn
+    và đảm bảo 14 trường dữ liệu.
     """
 
     def _format_date(self, date_str):
@@ -27,20 +32,20 @@ class SealeadScraper(BaseScraper):
             dt_obj = datetime.strptime(date_str, '%B %d, %Y')
             return dt_obj.strftime('%d/%m/%Y')
         except ValueError:
-            print(f"[SeaLead Scraper] Cảnh báo: Không thể phân tích định dạng ngày: {date_str}")
+            logger.warning("[SeaLead Scraper] Không thể phân tích định dạng ngày: %s", date_str)
             return date_str
 
     def scrape(self, tracking_number):
         """
         Phương thức scrape chính cho SeaLead.
         """
-        print(f"[SeaLead Scraper] Bắt đầu scrape cho mã: {tracking_number}")
+        logger.info(f"[SeaLead Scraper] Bắt đầu scrape cho mã: {tracking_number}")
         try:
             self.driver.get(self.config['url'])
             self.wait = WebDriverWait(self.driver, 30)
 
             # --- 1. Nhập mã B/L và tìm kiếm ---
-            print("[SeaLead Scraper] -> Đang điền thông tin tìm kiếm...")
+            logger.info("[SeaLead Scraper] -> Đang điền thông tin tìm kiếm...")
             search_input = self.wait.until(EC.presence_of_element_located((By.ID, "bl_number")))
             search_input.clear()
             search_input.send_keys(tracking_number)
@@ -49,18 +54,18 @@ class SealeadScraper(BaseScraper):
             self.driver.execute_script("arguments[0].click();", track_button)
 
             # --- 2. Chờ trang kết quả và trích xuất ---
-            print("[SeaLead Scraper] -> Đang chờ trang kết quả tải...")
+            logger.info("[SeaLead Scraper] -> Đang chờ trang kết quả tải...")
             self.wait.until(
                 EC.visibility_of_element_located((By.XPATH, f"//h4[contains(text(), 'Bill of lading number:')]"))
             )
-            print("[SeaLead Scraper] -> Trang kết quả đã tải. Bắt đầu trích xuất.")
+            logger.info("[SeaLead Scraper] -> Trang kết quả đã tải. Bắt đầu trích xuất.")
             
             normalized_data = self._extract_and_normalize_data(tracking_number)
             
             if not normalized_data:
                 return None, f"Không thể trích xuất dữ liệu đã chuẩn hóa cho '{tracking_number}'."
 
-            print("[SeaLead Scraper] -> Hoàn tất scrape thành công.")
+            logger.info(f"[SeaLead Scraper] -> Hoàn tất scrape thành công cho mã: {tracking_number}.")
             return normalized_data, None
 
         except TimeoutException:
@@ -68,101 +73,139 @@ class SealeadScraper(BaseScraper):
             screenshot_path = f"output/sealead_timeout_{tracking_number}_{timestamp}.png"
             try:
                 self.driver.save_screenshot(screenshot_path)
-            except Exception:
-                pass
+                logger.warning("[SeaLead Scraper] Timeout khi scrape mã '%s'. Đã lưu ảnh chụp màn hình vào %s", tracking_number, screenshot_path)
+            except Exception as ss_e:
+                logger.error("[SeaLead Scraper] Không thể lưu ảnh chụp màn hình khi bị timeout cho mã '%s': %s", tracking_number, ss_e)
             return None, f"Không tìm thấy kết quả cho '{tracking_number}' (Timeout)."
         except Exception as e:
-            traceback.print_exc()
+            logger.error("[SeaLead Scraper] Đã xảy ra lỗi không mong muốn khi scrape mã '%s': %s", tracking_number, e, exc_info=True)
             return None, f"Đã xảy ra lỗi không mong muốn cho '{tracking_number}': {e}"
 
     def _extract_and_normalize_data(self, tracking_number):
         """
         Trích xuất dữ liệu từ trang kết quả và ánh xạ vào template JSON.
+        Áp dụng logic chuẩn hóa 14 trường và xử lý transit.
         """
         try:
-            # --- 1. Trích xuất thông tin cơ bản ---
+            # === BƯỚC 1: KHỞI TẠO BIẾN ===
+            etd, atd, eta, ata = None, None, None, None
+            transit_port_list = []
+            etd_transit_final, atd_transit, eta_transit, ata_transit = None, None, None, None
+            today = date.today()
+
+            # === BƯỚC 2: TRÍCH XUẤT THÔNG TIN CƠ BẢN ===
             bl_number = self.driver.find_element(By.XPATH, "//h4[contains(text(), 'Bill of lading number')]").text.replace("Bill of lading number:", "").strip()
+            booking_no = bl_number # SeaLead không có BKG no riêng
+            booking_status = None # SeaLead không có trạng thái booking rõ ràng
             
             info_table = self.driver.find_element(By.CSS_SELECTOR, "table.route-table-bill")
             pol = info_table.find_element(By.XPATH, ".//th[contains(text(), 'Port of Loading')]/following-sibling::td").text.strip()
             pod = info_table.find_element(By.XPATH, ".//th[contains(text(), 'Port of Discharge')]/following-sibling::td").text.strip()
+            logger.info(f"[SeaLead Scraper] -> BL: {bl_number}, POL: {pol}, POD: {pod}")
 
-            # --- 2. Trích xuất lịch trình và thông tin trung chuyển ---
-            etd, eta = None, None
-            transit_port, etd_transit, eta_transit = None, None, None
-            
+            # === BƯỚC 3: TRÍCH XUẤT LỊCH TRÌNH VÀ THÔNG TIN TRUNG CHUYỂN ===
             schedule_tables = self.driver.find_elements(By.CSS_SELECTOR, "table.route-table")
             
-            if len(schedule_tables) > 0:
-                main_schedule_rows = schedule_tables[0].find_elements(By.CSS_SELECTOR, "tbody tr")
-                if main_schedule_rows:
-                    # Chặng đầu tiên luôn là chặng khởi hành
-                    first_leg_cells = main_schedule_rows[0].find_elements(By.TAG_NAME, "td")
-                    etd = first_leg_cells[5].text.strip() if len(first_leg_cells) > 5 else None
+            if not schedule_tables:
+                logger.warning(f"[SeaLead Scraper] Không tìm thấy bảng lịch trình (route-table) cho mã: {tracking_number}")
+                return None
 
-                    # Chặng cuối cùng là chặng đến
-                    last_leg_cells = main_schedule_rows[-1].find_elements(By.TAG_NAME, "td")
-                    eta = last_leg_cells[7].text.strip() if len(last_leg_cells) > 7 else None
+            main_schedule_table = schedule_tables[0]
+            rows = main_schedule_table.find_elements(By.CSS_SELECTOR, "tbody tr")
 
-                    # Nếu có nhiều hơn một chặng, tức là có trung chuyển
-                    if len(main_schedule_rows) > 1:
-                        # Cảng trung chuyển là điểm đến của chặng đầu tiên
-                        transit_port = first_leg_cells[6].text.strip() if len(first_leg_cells) > 6 else None
-                        # ETA tại cảng trung chuyển
-                        eta_transit = first_leg_cells[7].text.strip() if len(first_leg_cells) > 7 else None
-                        
-                        # ETD từ cảng trung chuyển là thời gian đi của chặng thứ hai
-                        second_leg_cells = main_schedule_rows[1].find_elements(By.TAG_NAME, "td")
-                        etd_transit = second_leg_cells[5].text.strip() if len(second_leg_cells) > 5 else None
+            if not rows:
+                logger.warning(f"[SeaLead Scraper] Không tìm thấy chặng nào trong bảng lịch trình chính cho mã: {tracking_number}")
+                return None
 
-            # --- 3. Trích xuất thời gian đến thực tế (Ata) từ chi tiết container ---
-            ata = None
+            # Xử lý chặng đầu tiên
+            first_leg_cells = rows[0].find_elements(By.TAG_NAME, "td")
+            etd = first_leg_cells[5].text.strip() if len(first_leg_cells) > 5 else None
+            # atd = None (Không có thông tin)
+
+            # Xử lý chặng cuối
+            last_leg_cells = rows[-1].find_elements(By.TAG_NAME, "td")
+            eta = last_leg_cells[7].text.strip() if len(last_leg_cells) > 7 else None
+            
+            # Xử lý các chặng trung chuyển (Logic từ COSCO)
+            future_etd_transits = []
+            logger.info("[SeaLead Scraper] Bắt đầu xử lý thông tin transit...")
+
+            for i in range(len(rows) - 1):
+                current_leg_cells = rows[i].find_elements(By.TAG_NAME, "td")
+                next_leg_cells = rows[i+1].find_elements(By.TAG_NAME, "td")
+
+                # Cột [6] là "Destination Location", Cột [4] là "Origin location"
+                current_pod = current_leg_cells[6].text.strip() if len(current_leg_cells) > 6 else None
+                next_pol = next_leg_cells[4].text.strip() if len(next_leg_cells) > 4 else None
+
+                if current_pod and next_pol and current_pod == next_pol:
+                    logger.debug(f"[SeaLead Scraper] Tìm thấy cảng transit '{current_pod}' giữa chặng {i} và {i+1}")
+                    if current_pod not in transit_port_list:
+                         transit_port_list.append(current_pod)
+
+                    # Sealead chỉ có (Estimated) Arrival Time (Cột [7])
+                    temp_eta_transit = current_leg_cells[7].text.strip() if len(current_leg_cells) > 7 else None
+                    if temp_eta_transit and not eta_transit: # Lấy ETA transit đầu tiên
+                         eta_transit = temp_eta_transit
+                         logger.debug(f"[SeaLead Scraper] Tìm thấy EtaTransit đầu tiên: {eta_transit}")
+                    # temp_ata_transit = None (Không có)
+
+                    # Sealead chỉ có (Estimated) Departure Time (Cột [5])
+                    temp_etd_transit_str = next_leg_cells[5].text.strip() if len(next_leg_cells) > 5 else None
+                    # temp_atd_transit = None (Không có)
+
+                    if temp_etd_transit_str:
+                        try:
+                            # Parse ngày theo format của Sealead
+                            etd_transit_date = datetime.strptime(temp_etd_transit_str, '%B %d, %Y').date()
+                            if etd_transit_date > today:
+                                future_etd_transits.append((etd_transit_date, current_pod, temp_etd_transit_str))
+                                logger.debug(f"[SeaLead Scraper] Thêm ETD transit trong tương lai: {temp_etd_transit_str} ({current_pod})")
+                        except (ValueError, IndexError):
+                            logger.warning(f"[SeaLead Scraper] Không thể parse ETD transit: {temp_etd_transit_str}")
+            
+            if future_etd_transits:
+                future_etd_transits.sort()
+                etd_transit_final = future_etd_transits[0][2]
+                logger.info(f"[SeaLead Scraper] ETD transit gần nhất trong tương lai được chọn: {etd_transit_final}")
+            else:
+                 logger.info("[SeaLead Scraper] Không tìm thấy ETD transit nào trong tương lai.")
+
+            # === BƯỚC 4: TRÍCH XUẤT THỜI GIAN ĐẾN THỰC TẾ (Ata) TỪ CHI TIẾT CONTAINER ===
             if len(schedule_tables) > 1:
                 container_details_table = schedule_tables[1]
                 try:
+                    # Lấy Ata từ "Latest Move Time" (Cột [4]) của container đầu tiên
                     first_container_row = container_details_table.find_element(By.CSS_SELECTOR, "tbody tr")
                     container_cells = first_container_row.find_elements(By.TAG_NAME, "td")
                     ata = container_cells[4].text.strip() if len(container_cells) > 4 else None
+                    logger.info(f"[SeaLead Scraper] Tìm thấy Ata (Latest Move Time) từ chi tiết container: {ata}")
                 except NoSuchElementException:
-                    print("[SeaLead Scraper] Cảnh báo: Không tìm thấy chi tiết container để lấy Ata.")
+                    logger.warning("[SeaLead Scraper] Không tìm thấy chi tiết container để lấy Ata.")
+            else:
+                logger.info("[SeaLead Scraper] Không có bảng chi tiết container, không thể lấy Ata.")
 
-            # --- 4. Xây dựng đối tượng JSON ---
-            #shipment_data = {
-            #    "BookingNo": bl_number,
-            #    "BlNumber": bl_number,
-            #    "BookingStatus": None,
-            #    "Pol": pol,
-            #    "Pod": pod,
-            #    "Etd": self._format_date(etd),
-            #    "Atd": None, # Không có thông tin
-            #    "Eta": self._format_date(eta),
-            #    "Ata": self._format_date(ata),
-            #    "TransitPort": transit_port,
-            #    "EtdTransit": self._format_date(etd_transit),
-            #    "AtdTrasit": None, # Không có thông tin
-            #    "EtaTransit": self._format_date(eta_transit),
-            #    "AtaTrasit": None, # Không có thông tin
-            #}
-            
+            # === BƯỚC 5: XÂY DỰNG ĐỐI TƯỢNG JSON (ĐẢM BẢO `or ""`) ===
             shipment_data = N8nTrackingInfo(
-                BookingNo= bl_number,
-                BlNumber= bl_number,
-                BookingStatus= "",
-                Pol= pol or "",
-                Pod= pod or "",
+                BookingNo= booking_no.strip(),
+                BlNumber= bl_number.strip(),
+                BookingStatus= booking_status or "",
+                Pol= pol.strip() or "",
+                Pod= pod.strip() or "",
                 Etd= self._format_date(etd) or "",
-                Atd= "",
+                Atd= self._format_date(atd) or "",
                 Eta= self._format_date(eta) or "",
                 Ata= self._format_date(ata) or "",
-                TransitPort= transit_port or "",
-                EtdTransit= self._format_date(etd_transit) or "",
-                AtdTransit= "",
+                TransitPort= ", ".join(transit_port_list) if transit_port_list else "",
+                EtdTransit= self._format_date(etd_transit_final) or "",
+                AtdTransit= self._format_date(atd_transit) or "",
                 EtaTransit= self._format_date(eta_transit) or "",
-                AtaTransit= ""
+                AtaTransit= self._format_date(ata_transit) or ""
             )
+            
+            logger.info("[SeaLead Scraper] Đã tạo đối tượng N8nTrackingInfo thành công.")
             return shipment_data
 
         except Exception as e:
-            print(f"[SeaLead Scraper] -> Lỗi trong quá trình trích xuất: {e}")
-            traceback.print_exc()
+            logger.error(f"[SeaLead Scraper] Lỗi trong quá trình trích xuất chi tiết cho mã '{tracking_number}': {e}", exc_info=True)
             return None

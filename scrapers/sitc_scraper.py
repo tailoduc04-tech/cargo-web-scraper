@@ -153,23 +153,6 @@ class SitcScraper(BaseScraper):
                     atd_transit = atd_transit_val
 
             # 3. Xây dựng đối tượng JSON
-            #shipment_data = {
-            #    "BookingNo": tracking_number, # Dùng tracking_number làm BookingNo vì không có dữ liệu riêng
-            #    "BlNumber": bl_number,
-            #    "BookingStatus": None, # Không có thông tin này
-            #    "Pol": pol,
-            #    "Pod": pod,
-            #    "Etd": self._format_date(etd),
-            #    "Atd": self._format_date(atd),
-            #    "Eta": self._format_date(eta),
-            #    "Ata": self._format_date(ata),
-            #    "TransitPort": transit_port,
-            #    "EtdTransit": self._format_date(etd_transit),
-            #    "AtdTrasit": self._format_date(atd_transit),
-            #    "EtaTransit": self._format_date(eta_transit),
-            #    "AtaTrasit": self._format_date(ata_transit)
-            #}
-            
             shipment_data = N8nTrackingInfo(
                 BookingNo= tracking_number,
                 BlNumber= bl_number,
