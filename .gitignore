@@ -207,7 +207,9 @@ marimo/_lsp/
 __marimo__/
 
 # Project specific ignores
-./output
+output
+scrapers/*.html
 test_local.py
 res.json
 clean_html.py
+prompt.txt
