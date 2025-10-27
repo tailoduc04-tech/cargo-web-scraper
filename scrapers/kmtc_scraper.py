@@ -157,7 +157,7 @@ class KmtcScraper(BaseScraper):
                 logger.info(f"  -> Container '{container_no}' là một link, thực hiện click...")
                 self.driver.execute_script("arguments[0].click();", first_container_link)
                 # Chờ cho header của timeline cập nhật số container
-                WebDriverWait(self.driver, 10).until(
+                WebDriverWait(self.driver, 2).until(
                     EC.text_to_be_present_in_element((By.CSS_SELECTOR, ".location_detail_header .ship_num"), container_no)
                 )
                 time.sleep(0.5) # Chờ JS render

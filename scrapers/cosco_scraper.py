@@ -60,7 +60,7 @@ class CoscoScraper(BaseScraper):
             # 1. Xử lý cookie nếu có
             t_cookie_start = time.time()
             try:
-                cookie_button = WebDriverWait(self.driver, 10).until(
+                cookie_button = WebDriverWait(self.driver, 3).until(
                     EC.element_to_be_clickable((By.CSS_SELECTOR, ".btnBlue.ivu-btn-primary"))
                 )
                 cookie_button.click()

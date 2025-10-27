@@ -5,26 +5,26 @@ from collections import defaultdict
 
 # --- Dữ liệu đầu vào ---
 tracking_data = {
-    #"COSCO": "6430435850",
-    #"CSL": "CSX25SHKSOK040022",
-    #"EMC": "237500510574",
-    #"GOLSTAR": "GOSUXNG1835417",
-    #"HEUNG-A": "HASLK01250703685",
+    "COSCO": "6430435850",
+    "CSL": "CSX25SHKSOK040022",
+    "EMC": "237500510574",
+    "GOLSTAR": "GOSUXNG1835417",
+    "HEUNG-A": "HASLK01250703685",
     "IAL": "A49FA02393",
-    #"KMTC": "KMTCTAO8083417",
-    #"MSC": "EBKG14022741",
+    "KMTC": "KMTCTAO8083417",
+    "MSC": "EBKG14022741",
     "MSK": "259545107",
-    #"ONE": "RICFHB866600",
-    # "OSL": "...", # Bỏ qua OSL
-    #"PAN": "PCLUKAN00418449",
-    #"PIL": "NGPX50385100",
+    "ONE": "RICFHB866600",
+    #"OSL": "...", # Bỏ qua OSL
+    "PAN": "PCLUKAN00418449",
+    "PIL": "NGPX50385100",
     "SEALEAD": "SLSNBV06890",
-    #"SITC": "SITGTXCE557927",
-    #"SNK": "SNKO03K250801024",
-    #"Tailwind": "TSHGNGB25033529",
-    #"TRANSLINER": "TRLPKGKAT6016163",
-    #"UNIFEEDER": "TAOSOK25051819",
-    #"YML": "I492369242",
+    "SITC": "SITGTXCE557927",
+    "SNK": "SNKO03K250801024",
+    "Tailwind": "TSHGNGB25033529",
+    "TRANSLINER": "TRLPKGKAT6016163",
+    "UNIFEEDER": "TAOSOK25051819",
+    "YML": "I492369242",
 }
 
 # --- Cấu hình ---
@@ -51,7 +51,7 @@ for service, bl_number in tracking_data.items():
             end_time = time.time()
             duration = end_time - start_time
 
-            if response.status_code == 200 or response.status_code == 404:
+            if response.status_code == 200:
                 response_times.append(duration)
                 successful_requests += 1
                 print(f"  Request {i+1}/{NUM_REQUESTS}: Thành công ({response.status_code}) - {duration:.2f} giây")

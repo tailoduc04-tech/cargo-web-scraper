@@ -50,7 +50,7 @@ class MscScraper(BaseScraper):
             # 1. Xử lý cookie
             t_cookie_start = time.time()
             try:
-                cookie_button = WebDriverWait(self.driver, 10).until(
+                cookie_button = WebDriverWait(self.driver, 2).until(
                     EC.element_to_be_clickable((By.ID, "onetrust-accept-btn-handler"))
                 )
                 logger.info("-> (Thời gian) Tải trang và tìm nút cookie: %.2fs", time.time() - t_nav_start)

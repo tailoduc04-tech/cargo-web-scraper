@@ -50,7 +50,7 @@ class EmcScraper(BaseScraper):
             
             t_cookie_start = time.time()
             try:
-                cookie_button = WebDriverWait(self.driver, 10).until(
+                cookie_button = WebDriverWait(self.driver, 3).until(
                     EC.element_to_be_clickable((By.ID, "btn_cookie_accept_all"))
                 )
                 cookie_button.click()

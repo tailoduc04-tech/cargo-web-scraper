@@ -51,7 +51,7 @@ class GoldstarScraper(BaseScraper):
             # 1. Xử lý cookie nếu có
             t_cookie_start = time.time()
             try:
-                cookie_button = WebDriverWait(self.driver, 10).until(
+                cookie_button = WebDriverWait(self.driver, 3).until(
                     EC.element_to_be_clickable((By.ID, "rcc-confirm-button"))
                 )
                 self.driver.execute_script("arguments[0].click();", cookie_button)

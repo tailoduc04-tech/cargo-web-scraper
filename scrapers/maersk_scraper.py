@@ -60,7 +60,7 @@ class MaerskScraper(BaseScraper):
             t_cookie_start = time.time()
             try:
                 # Chờ element đầu tiên (nút cookie) sẽ bao gồm thời gian tải trang thực tế
-                allow_all_button = WebDriverWait(self.driver, 10).until(
+                allow_all_button = WebDriverWait(self.driver, 2).until(
                     EC.element_to_be_clickable((By.XPATH, "//button[contains(@class, 'coi-banner__accept') and contains(., 'Allow all')]"))
                 )
                 logger.info("-> (Thời gian) Tải trang và tìm nút cookie: %.2fs", time.time() - t_nav_start)

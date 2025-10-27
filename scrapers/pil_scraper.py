@@ -155,12 +155,12 @@ class PilScraper(BaseScraper):
                 history_tbody_selector = (By.XPATH, f"//b[contains(text(), '{container_no}')]/ancestor::tbody/following-sibling::tbody[1]")
                 logger.debug("Chờ tbody lịch sử của %s xuất hiện...", container_no)
 
-                history_tbody = WebDriverWait(self.driver, 20).until(
+                history_tbody = WebDriverWait(self.driver, 2).until(
                     EC.presence_of_element_located(history_tbody_selector)
                 )
 
                 # Chờ cho class 'hidden' bị xóa đi
-                WebDriverWait(self.driver, 20).until(
+                WebDriverWait(self.driver, 2).until(
                     lambda d: 'hidden' not in d.find_element(*history_tbody_selector).get_attribute('class')
                 )
                 logger.info("Đã mở rộng chi tiết cho %s.", container_no)
