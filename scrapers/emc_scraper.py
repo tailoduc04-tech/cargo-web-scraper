@@ -5,7 +5,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException, NoSuchElementException
-import time
+import time  # <--- Tớ đã thêm module time
 
 from .base_scraper import BaseScraper
 from schemas import N8nTrackingInfo
@@ -40,23 +40,27 @@ class EmcScraper(BaseScraper):
         Phương thức scraping chính cho Evergreen.
         """
         logger.info("Bắt đầu scrape cho mã: %s", tracking_number)
+        t_total_start = time.time() # Tổng thời gian bắt đầu
         main_window = self.driver.current_window_handle
         try:
+            t_nav_start = time.time()
             self.driver.get(self.config['url'])
             self.wait = WebDriverWait(self.driver, 30)
+            logger.info("-> (Thời gian) Tải trang: %.2fs", time.time() - t_nav_start)
             
+            t_cookie_start = time.time()
             try:
                 cookie_button = WebDriverWait(self.driver, 10).until(
                     EC.element_to_be_clickable((By.ID, "btn_cookie_accept_all"))
                 )
                 cookie_button.click()
-                logger.info("-> Đã chấp nhận cookies.")
-                time.sleep(1) # Chờ cho banner biến mất
+                logger.info("-> Đã chấp nhận cookies. (Thời gian xử lý: %.2fs)", time.time() - t_cookie_start)
             except TimeoutException:
-                logger.info("-> Banner cookie không xuất hiện hoặc đã được chấp nhận.")
+                logger.info("-> Banner cookie không xuất hiện. (Thời gian kiểm tra: %.2fs)", time.time() - t_cookie_start)
 
             # --- 1. Thực hiện tìm kiếm ---
             logger.info("-> Điền thông tin tìm kiếm...")
+            t_search_start = time.time()
             bl_radio = self.wait.until(EC.element_to_be_clickable((By.ID, "s_bl")))
             self.driver.execute_script("arguments[0].click();", bl_radio)
 
@@ -66,32 +70,42 @@ class EmcScraper(BaseScraper):
 
             submit_button = self.driver.find_element(By.CSS_SELECTOR, "#nav-quick > table > tbody > tr:nth-child(1) > td > table > tbody > tr:nth-child(1) > td.ec-text-start > table > tbody > tr > td > div:nth-child(2) > input")
             submit_button.click()
+            logger.info("-> (Thời gian) Gửi form tìm kiếm: %.2fs", time.time() - t_search_start)
 
             # --- 2. Chờ trang kết quả và trích xuất dữ liệu ---
             logger.info("-> Chờ trang kết quả tải...")
+            t_wait_result_start = time.time()
             # Đợi một phần tử đáng tin cậy trên trang kết quả xuất hiện
             self.wait.until(EC.visibility_of_element_located((By.XPATH, "//th[contains(text(), 'B/L No.')]")))
-            logger.info("-> Trang kết quả đã tải. Bắt đầu trích xuất.")
+            logger.info("-> Trang kết quả đã tải. (Thời gian chờ: %.2fs)", time.time() - t_wait_result_start)
             
+            t_extract_start = time.time()
             normalized_data = self._extract_and_normalize_data(tracking_number, main_window)
+            logger.info("-> (Thời gian) Trích xuất dữ liệu: %.2fs", time.time() - t_extract_start)
 
             if not normalized_data:
                 return None, f"Không thể trích xuất dữ liệu đã chuẩn hóa cho '{tracking_number}'."
 
-            logger.info("-> Hoàn tất scrape thành công cho mã %s.", tracking_number)
+            t_total_end = time.time()
+            logger.info("-> Hoàn tất scrape thành công cho mã %s. (Tổng thời gian: %.2fs)", 
+                         tracking_number, t_total_end - t_total_start)
             return normalized_data, None
 
         except TimeoutException:
+            t_total_fail = time.time()
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             screenshot_path = f"output/emc_timeout_{tracking_number}_{timestamp}.png"
             try:
                 self.driver.save_screenshot(screenshot_path)
-                logger.warning("Timeout khi scrape mã '%s'. Đã lưu ảnh chụp màn hình vào %s", tracking_number, screenshot_path)
+                logger.warning("Timeout khi scrape mã '%s'. Đã lưu ảnh chụp màn hình vào %s (Tổng thời gian: %.2fs)", 
+                             tracking_number, screenshot_path, t_total_fail - t_total_start)
             except Exception as ss_e:
                 logger.error("Không thể lưu ảnh chụp màn hình khi bị timeout cho mã '%s': %s", tracking_number, ss_e)
             return None, f"Không tìm thấy kết quả cho '{tracking_number}' (Timeout)."
         except Exception as e:
-            logger.error("Đã xảy ra lỗi không mong muốn khi scrape mã '%s': %s", tracking_number, e, exc_info=True)
+            t_total_fail = time.time()
+            logger.error("Đã xảy ra lỗi không mong muốn khi scrape mã '%s': %s (Tổng thời gian: %.2fs)", 
+                         tracking_number, e, t_total_fail - t_total_start, exc_info=True)
             return None, f"Đã xảy ra lỗi không mong muốn cho '{tracking_number}': {e}"
         finally:
             # Đảm bảo quay về cửa sổ chính
@@ -173,12 +187,16 @@ class EmcScraper(BaseScraper):
             
             logger.info(f"Thông tin cơ bản: B/L={bl_number}, POL={pol}, POD={pod}, ETD={etd_str}, ETA={eta_str}")
 
-            # --- LẤY SỰ KIỆN TỪ TẤT CẢ CÁC CONTAINER ---
+            # --- LẤY SỰ KIỆN TỪ 1 CONTAINER ĐẦU TIÊN ---
             all_events = []
             container_links = self.driver.find_elements(By.XPATH, "//a[contains(@href, 'frmCntrMoveDetail')]")
-            logger.info(f"Tìm thấy {len(container_links)} container để kiểm tra sự kiện.")
             
-            for link in container_links:
+            # --- THAY ĐỔI THEO YÊU CẦU ---
+            logger.info(f"Tìm thấy {len(container_links)} container. Sẽ chỉ xử lý 1 container đầu tiên theo yêu cầu.")
+            
+            # Chỉ lặp qua 1 link đầu tiên
+            for link in container_links[:1]: 
+            # --- KẾT THÚC THAY ĐỔI ---
                 try:
                     container_no = link.text.strip()
                     logger.info(f"Đang xử lý container: {container_no}")
@@ -198,7 +216,6 @@ class EmcScraper(BaseScraper):
                     logger.debug("-> Đã đóng popup.")
                     self.driver.switch_to.window(main_window)
                     logger.debug("-> Đã chuyển về cửa sổ chính.")
-                    time.sleep(0.5) # Thêm độ trễ nhỏ để ổn định
                 except Exception as e:
                     logger.warning(f"Không thể xử lý popup cho container. Lỗi: {e}", exc_info=True)
                     # Cố gắng quay lại cửa sổ chính nếu có lỗi
@@ -208,7 +225,7 @@ class EmcScraper(BaseScraper):
                         except: pass
                         self.driver.switch_to.window(main_window)
 
-            logger.info(f"Tổng cộng đã thu thập được {len(all_events)} sự kiện.")
+            logger.info(f"Tổng cộng đã thu thập được {len(all_events)} sự kiện (từ 1 container).")
             if not all_events:
                  logger.warning("Không thu thập được sự kiện nào từ các popup.")
 

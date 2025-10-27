@@ -5,7 +5,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException, NoSuchElementException
-import time
+import time # <--- Thêm import time
 import traceback
 
 from .base_scraper import BaseScraper
@@ -39,80 +39,100 @@ class MscScraper(BaseScraper):
         Scrape dữ liệu cho một Booking Number và trả về một đối tượng N8nTrackingInfo hoặc lỗi.
         """
         logger.info("[MSC Scraper] Bắt đầu scrape cho mã: %s", tracking_number)
+        t_total_start = time.time() # Tổng thời gian bắt đầu
         try:
+            t_nav_start = time.time()
             self.driver.get(self.config['url'])
             self.wait = WebDriverWait(self.driver, 45)
+            # Log thời gian tải trang sẽ chính xác hơn khi chờ element đầu tiên
+            # logger.info("-> (Thời gian) Tải trang: %.2fs", time.time() - t_nav_start)
 
             # 1. Xử lý cookie
+            t_cookie_start = time.time()
             try:
                 cookie_button = WebDriverWait(self.driver, 10).until(
                     EC.element_to_be_clickable((By.ID, "onetrust-accept-btn-handler"))
                 )
+                logger.info("-> (Thời gian) Tải trang và tìm nút cookie: %.2fs", time.time() - t_nav_start)
                 cookie_button.click()
-                logger.info("[MSC Scraper] Đã chấp nhận cookies.")
+                logger.info("[MSC Scraper] Đã chấp nhận cookies. (Thời gian xử lý: %.2fs)", time.time() - t_cookie_start)
             except TimeoutException:
-                logger.info("[MSC Scraper] Banner cookie không tìm thấy hoặc đã được chấp nhận.")
+                 logger.info("-> (Thời gian) Tải trang (không có cookie): %.2fs", time.time() - t_nav_start)
+                 logger.info("[MSC Scraper] Banner cookie không tìm thấy hoặc đã được chấp nhận. (Thời gian kiểm tra: %.2fs)", time.time() - t_cookie_start)
 
             # 2. Chuyển sang tìm kiếm bằng Booking Number
+            t_switch_search_start = time.time()
             booking_radio_button = self.wait.until(EC.presence_of_element_located((By.ID, "bookingradio")))
-            # Sử dụng JavaScript click để đảm bảo click thành công
             self.driver.execute_script("arguments[0].click();", booking_radio_button)
-            logger.info("[MSC Scraper] Đã chuyển sang tìm kiếm bằng Booking Number.")
-            time.sleep(1) # Chờ một chút để UI cập nhật
+            logger.info("[MSC Scraper] Đã chuyển sang tìm kiếm bằng Booking Number. (Thời gian: %.2fs)", time.time() - t_switch_search_start)
 
             # 3. Nhập Booking Number và tìm kiếm
+            t_search_start = time.time()
             search_input = self.wait.until(EC.presence_of_element_located((By.ID, "trackingNumber")))
             search_input.clear()
             search_input.send_keys(tracking_number)
 
-            # Sử dụng submit của form thay vì click nút tìm kiếm đôi khi ổn định hơn
             search_form = self.driver.find_element(By.CSS_SELECTOR, "form.js-form")
             search_form.submit()
-            logger.info("[MSC Scraper] Đang tìm kiếm mã: %s", tracking_number)
+            logger.info("[MSC Scraper] Đang tìm kiếm mã: %s. (Thời gian tìm kiếm: %.2fs)", tracking_number, time.time() - t_search_start)
 
-            # 4. Đợi kết quả và mở rộng tất cả chi tiết container
+            # 4. Đợi kết quả và mở rộng chi tiết container ĐẦU TIÊN
+            t_wait_result_start = time.time()
             self.wait.until(EC.visibility_of_element_located((By.CLASS_NAME, "msc-flow-tracking__result")))
-            logger.info("[MSC Scraper] Trang kết quả đã tải.")
-            # Chờ thêm một chút cho các animation hoàn tất và các nút xuất hiện đầy đủ
-            time.sleep(3)
+            logger.info("[MSC Scraper] Trang kết quả đã tải. (Thời gian chờ: %.2fs)", time.time() - t_wait_result_start)
 
+            t_expand_start = time.time()
             more_buttons = self.driver.find_elements(By.CSS_SELECTOR, ".msc-flow-tracking__more-button")
-            logger.info("[MSC Scraper] Tìm thấy %d container để mở rộng.", len(more_buttons))
-            for i, button in enumerate(more_buttons):
+            logger.info("[MSC Scraper] Tìm thấy %d container. Sẽ chỉ mở rộng container đầu tiên.", len(more_buttons))
+
+            # --- THAY ĐỔI: Chỉ xử lý nút đầu tiên ---
+            if more_buttons:
+                button = more_buttons[0] # Chỉ lấy nút đầu tiên
                 try:
                     # Kiểm tra xem nút có class 'open' không, nếu có thì bỏ qua
-                    if 'open' not in button.find_element(By.XPATH, "..").get_attribute('class'):
+                    parent_div = button.find_element(By.XPATH, "..") # Lấy div cha chứa nút
+                    if 'open' not in parent_div.get_attribute('class'):
                          self.driver.execute_script("arguments[0].click();", button)
-                         logger.debug("Đã click mở rộng container #%d", i+1)
-                         time.sleep(1.5) # Chờ animation mở rộng
+                         logger.debug("Đã click mở rộng container đầu tiên.")
                     else:
-                         logger.debug("Container #%d đã được mở rộng.", i+1)
+                         logger.debug("Container đầu tiên đã được mở rộng.")
                 except Exception as e:
-                    logger.warning("[MSC Scraper] Không thể nhấp vào nút mở rộng container #%d: %s", i + 1, e)
-
-            logger.info("[MSC Scraper] Đã mở rộng (hoặc kiểm tra) tất cả chi tiết container.")
+                    logger.warning("[MSC Scraper] Không thể nhấp vào nút mở rộng container đầu tiên: %s", e, exc_info=True)
+            else:
+                 logger.warning("[MSC Scraper] Không tìm thấy container nào để mở rộng.")
+            logger.info("[MSC Scraper] -> (Thời gian) Mở rộng container: %.2fs", time.time() - t_expand_start)
+            # --- KẾT THÚC THAY ĐỔI ---
 
             # 5. Trích xuất và chuẩn hóa dữ liệu
+            t_extract_start = time.time()
             normalized_data = self._extract_and_normalize_data(tracking_number)
+            logger.info("-> (Thời gian) Trích xuất dữ liệu: %.2fs", time.time() - t_extract_start)
+
 
             if not normalized_data:
                 # Lỗi đã được log bên trong hàm _extract_and_normalize_data
                 return None, f"Không thể trích xuất dữ liệu đã chuẩn hóa cho '{tracking_number}'."
 
-            logger.info("[MSC Scraper] Hoàn tất scrape thành công cho mã: %s", tracking_number)
+            t_total_end = time.time()
+            logger.info("[MSC Scraper] Hoàn tất scrape thành công cho mã: %s (Tổng thời gian: %.2fs)",
+                         tracking_number, t_total_end - t_total_start)
             return normalized_data, None
 
         except TimeoutException:
+            t_total_fail = time.time()
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             screenshot_path = f"output/msc_timeout_{tracking_number}_{timestamp}.png"
             try:
                 self.driver.save_screenshot(screenshot_path)
-                logger.warning("[MSC Scraper] Timeout khi scrape mã '%s'. Đã lưu ảnh chụp màn hình vào %s", tracking_number, screenshot_path)
+                logger.warning("[MSC Scraper] Timeout khi scrape mã '%s'. Đã lưu ảnh chụp màn hình vào %s (Tổng thời gian: %.2fs)",
+                             tracking_number, screenshot_path, t_total_fail - t_total_start)
             except Exception as ss_e:
                 logger.error("[MSC Scraper] Không thể lưu ảnh chụp màn hình khi bị timeout cho mã '%s': %s", tracking_number, ss_e)
             return None, f"Không tìm thấy kết quả cho '{tracking_number}' (Timeout)."
         except Exception as e:
-            logger.error("[MSC Scraper] Đã xảy ra lỗi không mong muốn khi scrape mã '%s': %s", tracking_number, e, exc_info=True)
+            t_total_fail = time.time()
+            logger.error("[MSC Scraper] Đã xảy ra lỗi không mong muốn khi scrape mã '%s': %s (Tổng thời gian: %.2fs)",
+                         tracking_number, e, t_total_fail - t_total_start, exc_info=True)
             return None, f"Đã xảy ra lỗi không mong muốn cho '{tracking_number}': {e}"
 
     def _get_detail_value(self, section, heading_text):
@@ -120,9 +140,8 @@ class MscScraper(BaseScraper):
         try:
             # Tìm li chứa heading_text, sau đó tìm span giá trị trong li đó
             value_span = section.find_element(By.XPATH, f".//li[contains(., '{heading_text}')]/span[contains(@class, 'details-value')]")
-            # MSC có thể có cấu trúc span > span bên trong, lấy text của span cha để bao gồm tất cả
             full_text = value_span.text.strip()
-            # Xử lý trường hợp POL/POD có mã trong ngoặc: "Houston, US (USHOU)" -> "Houston, US"
+            # Xử lý trường hợp POL/POD có mã trong ngoặc
             if '(' in full_text and heading_text in ["Port of Load", "Port of Discharge"]:
                 return full_text.split('(')[0].strip()
             return full_text
@@ -136,7 +155,7 @@ class MscScraper(BaseScraper):
         events = []
         try:
             steps = container_element.find_elements(By.CSS_SELECTOR, ".msc-flow-tracking__step")
-            logger.debug("Tìm thấy %d step(s) trong container.", len(steps))
+            logger.debug("-> Tìm thấy %d step(s) trong container.", len(steps))
 
             for step in steps:
                 try:
@@ -152,17 +171,20 @@ class MscScraper(BaseScraper):
                         logger.warning("Định dạng ngày không hợp lệ '%s' trong step: %s, %s", date_str, location, description)
                         continue # Bỏ qua event này nếu ngày không hợp lệ
 
-                    events.append({
+                    event_data = {
                         "date": date_str, # Giữ lại chuỗi gốc để format
                         "datetime": event_datetime, # Dùng để sắp xếp và so sánh
                         "description": description,
                         "location": location
-                    })
+                    }
+                    events.append(event_data)
+                    logger.debug("--> Trích xuất event: %s", event_data)
                 except NoSuchElementException as e:
                     logger.warning("Thiếu thông tin trong một step của container: %s", e)
                     continue # Bỏ qua step này nếu thiếu phần tử
         except Exception as e:
              logger.error("Lỗi khi trích xuất events từ container: %s", e, exc_info=True)
+        logger.debug("-> Hoàn tất trích xuất %d sự kiện từ container.", len(events))
         return events
 
     def _find_event(self, sorted_events, description_keyword, location_keyword_or_list=None, find_first=False, find_last=False):
@@ -173,6 +195,7 @@ class MscScraper(BaseScraper):
         """
         matches = []
         if not sorted_events:
+            logger.debug("-> _find_event: Danh sách sự kiện rỗng.")
             return {}
 
         desc_keyword_lower = description_keyword.lower()
@@ -183,6 +206,9 @@ class MscScraper(BaseScraper):
                 keywords_to_check = [k.strip().lower() for k in location_keyword_or_list if k and k.strip()]
             elif isinstance(location_keyword_or_list, str) and location_keyword_or_list.strip():
                  keywords_to_check = [location_keyword_or_list.strip().lower()]
+
+        logger.debug("-> _find_event: Tìm '%s' tại '%s' (Keywords: %s), first: %s, last: %s",
+                     description_keyword, location_keyword_or_list, keywords_to_check, find_first, find_last)
 
         for event in sorted_events:
             desc = event.get("description", "").lower()
@@ -197,55 +223,60 @@ class MscScraper(BaseScraper):
                 matches.append(event)
                 if find_first:
                     # Vì list đã sort, match đầu tiên là match cần tìm
-                    logger.debug("Tìm thấy event (first): desc='%s', loc='%s', event=%s", description_keyword, location_keyword_or_list, event)
+                    logger.debug("--> Tìm thấy event (first): %s", event)
                     return event
 
         if not matches:
-            logger.debug("Không tìm thấy event: desc='%s', loc='%s'", description_keyword, location_keyword_or_list)
+            logger.debug("--> Không tìm thấy event khớp.")
             return {}
 
         # Nếu không yêu cầu first, hoặc yêu cầu last (hoặc mặc định)
-        logger.debug("Tìm thấy event (last/default): desc='%s', loc='%s', event=%s", description_keyword, location_keyword_or_list, matches[-1])
-        return matches[-1] # Match cuối cùng trong list đã sort
+        result = matches[-1] # Match cuối cùng trong list đã sort
+        logger.debug("--> Tìm thấy event (last/default): %s", result)
+        return result
 
 
     def _extract_and_normalize_data(self, booking_no):
         """
         Trích xuất và chuẩn hóa dữ liệu từ trang kết quả thành một đối tượng N8nTrackingInfo.
+        Chỉ xử lý container đầu tiên.
         """
         try:
             # === BƯỚC 1: LẤY THÔNG TIN TÓM TẮT CHUNG ===
+            logger.debug("Bắt đầu trích xuất thông tin tóm tắt...")
             result_div = self.wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR, ".msc-flow-tracking__result")))
             details_section = result_div.find_element(By.CSS_SELECTOR, ".msc-flow-tracking__details ul")
 
-            # Sử dụng _get_detail_value để lấy POL và POD (đã xử lý loại bỏ mã cảng)
             pol = self._get_detail_value(details_section, "Port of Load") or ""
             pod = self._get_detail_value(details_section, "Port of Discharge") or ""
 
-            # Lấy BL Number
             bl_number_span = details_section.find_element(By.XPATH, ".//span[contains(text(), 'Bill of Lading:')]/following-sibling::span[contains(@class, 'msc-flow-tracking__details-value')][1]")
             bl_number = bl_number_span.text.strip() if bl_number_span else ""
 
-            # Xử lý trường hợp có nhiều cảng trung chuyển
             transit_port_spans = details_section.find_elements(By.XPATH, ".//li[contains(., 'Transhipment')]/span[contains(@class, 'details-value')]")
             transit_ports = [elem.text.strip() for elem in transit_port_spans if elem.text.strip()]
 
             logger.info("Thông tin tóm tắt: POL='%s', POD='%s', BL='%s', TransitPorts=%s", pol, pod, bl_number, transit_ports)
 
-            # === BƯỚC 2: THU THẬP VÀ SẮP XẾP TẤT CẢ EVENTS ===
+            # === BƯỚC 2: THU THẬP VÀ SẮP XẾP EVENTS TỪ CONTAINER ĐẦU TIÊN ===
             all_events = []
             containers = result_div.find_elements(By.CSS_SELECTOR, ".msc-flow-tracking__container")
-            logger.info("Bắt đầu thu thập events từ %d container(s).", len(containers))
-            for i, container in enumerate(containers):
-                container_events = self._extract_events_from_container(container)
-                logger.debug("Container #%d có %d event(s).", i+1, len(container_events))
+            logger.info("Bắt đầu thu thập events từ container đầu tiên (trong số %d).", len(containers))
+            # --- THAY ĐỔI: Chỉ xử lý container đầu tiên ---
+            if containers:
+                container_events = self._extract_events_from_container(containers[0]) # Chỉ lấy container đầu tiên
+                logger.debug("Container đầu tiên có %d event(s).", len(container_events))
                 all_events.extend(container_events)
+            else:
+                logger.warning("Không tìm thấy container nào.")
+            # --- KẾT THÚC THAY ĐỔI ---
 
             # Sắp xếp tất cả events theo thời gian tăng dần
-            all_events.sort(key=lambda x: x.get('datetime', datetime.max)) # Sắp xếp sử dụng datetime object
-            logger.info("Đã thu thập và sắp xếp tổng cộng %d event(s).", len(all_events))
+            all_events.sort(key=lambda x: x.get('datetime', datetime.max))
+            logger.info("Đã thu thập và sắp xếp tổng cộng %d event(s) (từ container đầu tiên).", len(all_events))
 
             # === BƯỚC 3: TÌM CÁC SỰ KIỆN CHÍNH (ETD/ATD POL, ETA/ATA POD) ===
+            logger.debug("Tìm kiếm các sự kiện chính...")
             # ATD POL: Sự kiện "Export Loaded on Vessel" cuối cùng tại POL
             atd_event = self._find_event(all_events, "Export Loaded on Vessel", pol, find_last=True)
             # ETA POD: Sự kiện "Estimated Time of Arrival" cuối cùng tại POD
@@ -253,8 +284,7 @@ class MscScraper(BaseScraper):
             # ATA POD: Sự kiện "Discharged from vessel" đầu tiên tại POD
             ata_event = self._find_event(all_events, "Discharged from vessel", pod, find_first=True)
 
-            # ETD POL: MSC thường không hiển thị ETD dự kiến rõ ràng ở POL, để trống
-            etd_pol = ""
+            etd_pol = "" # ETD POL: MSC thường không hiển thị rõ ràng, để trống
             atd_pol = self._format_date(atd_event.get("date")) if atd_event else ""
             eta_pod = self._format_date(eta_event.get("date")) if eta_event else ""
             ata_pod = self._format_date(ata_event.get("date")) if ata_event else ""
@@ -282,6 +312,7 @@ class MscScraper(BaseScraper):
                 atd_transit_event = self._find_event(all_events, "Export Loaded on Vessel", transit_ports, find_last=True)
 
                 # Tìm EtdTransit: Tìm tất cả "Full Intended Transshipment" tại các cảng transit có ngày > hôm nay
+                logger.debug("Tìm kiếm EtdTransit trong tương lai...")
                 for event in all_events:
                     loc = (event.get('location') or "").strip().lower()
                     desc = event.get('description', '').lower()
@@ -292,7 +323,7 @@ class MscScraper(BaseScraper):
                     if is_transit_loc and "full intended transshipment" in desc and event_datetime:
                         if event_datetime.date() > today:
                             future_etd_transits.append((event_datetime, event['location'], event['date']))
-                            logger.debug("Tìm thấy ứng viên EtdTransit tương lai: %s", event)
+                            logger.debug("--> Tìm thấy ứng viên EtdTransit tương lai: %s", event)
 
                 if future_etd_transits:
                     future_etd_transits.sort() # Sắp xếp theo ngày tăng dần
@@ -312,6 +343,7 @@ class MscScraper(BaseScraper):
             logger.info("Sự kiện Transit: Ata='%s', Eta='%s', Atd='%s', Etd='%s'", ata_transit, eta_transit, atd_transit, etd_transit)
 
             # === BƯỚC 5: TẠO ĐỐI TƯỢNG JSON CHUẨN HÓA ===
+            logger.debug("Tạo đối tượng N8nTrackingInfo...")
             shipment_data = N8nTrackingInfo(
                 BookingNo=booking_no or "",
                 BlNumber=bl_number or "",

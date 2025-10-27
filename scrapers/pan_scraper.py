@@ -6,7 +6,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException, NoSuchElementException
 import traceback
-import time
+import time  # <--- Tớ đã thêm module time
 
 from .base_scraper import BaseScraper
 from schemas import N8nTrackingInfo
@@ -55,40 +55,52 @@ class PanScraper(BaseScraper):
         Phương thức scrape chính cho Pan Continental.
         """
         logger.info(f"[PanCont Scraper] Bắt đầu scrape cho mã: {tracking_number}")
+        t_total_start = time.time() # Tổng thời gian bắt đầu
+
         try:
+            t_nav_start = time.time()
             self.driver.get(self.config['url'].format(BL_NUMBER = tracking_number))
             self.wait = WebDriverWait(self.driver, 30)
+            logger.info("-> (Thời gian) Tải trang: %.2fs", time.time() - t_nav_start)
 
             # --- 2. Chờ và chuyển vào iframe chứa kết quả ---
             logger.info("[PanCont Scraper] -> Đang chờ iframe kết quả tải...")
+            t_wait_iframe_start = time.time()
             # Đợi cho iframe xuất hiện và chuyển vào đó
             self.wait.until(EC.presence_of_element_located((By.TAG_NAME, "iframe")))
             self.driver.switch_to.frame(self.driver.find_element(By.TAG_NAME, "iframe"))
+            logger.info("-> (Thời gian) Chờ và chuyển iframe: %.2fs", time.time() - t_wait_iframe_start)
             
             # --- 3. Chờ kết quả trong iframe và trích xuất ---
+            t_wait_result_start = time.time()
             self.wait.until(EC.visibility_of_element_located((By.ID, "bl_no")))
-            logger.info("[PanCont Scraper] -> Trang kết quả đã tải. Bắt đầu trích xuất.")
+            logger.info("[PanCont Scraper] -> Trang kết quả đã tải. (Thời gian chờ: %.2fs)", time.time() - t_wait_result_start)
             
+            t_extract_start = time.time()
             normalized_data = self._extract_and_normalize_data(tracking_number)
+            logger.info("-> (Thời gian) Trích xuất dữ liệu: %.2fs", time.time() - t_extract_start)
             
             if not normalized_data:
                 # Lỗi này đã được log bên trong _extract_and_normalize_data
                 return None, f"Không thể trích xuất dữ liệu đã chuẩn hóa cho '{tracking_number}'."
 
-            logger.info("[PanCont Scraper] -> Hoàn tất scrape thành công.")
+            t_total_end = time.time()
+            logger.info("[PanCont Scraper] -> Hoàn tất scrape thành công. (Tổng thời gian: %.2fs)", t_total_end - t_total_start)
             return normalized_data, None
 
         except TimeoutException:
+            t_total_fail = time.time()
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             screenshot_path = f"output/pancont_timeout_{tracking_number}_{timestamp}.png"
             try:
                 self.driver.save_screenshot(screenshot_path)
-                logger.warning(f"Không tìm thấy kết quả cho '{tracking_number}' (Timeout). Đã lưu ảnh chụp màn hình: {screenshot_path}")
+                logger.warning(f"Không tìm thấy kết quả cho '{tracking_number}' (Timeout). Đã lưu ảnh chụp màn hình: {screenshot_path} (Tổng thời gian: %.2fs)", t_total_fail - t_total_start)
             except Exception as ss_e:
                 logger.error(f"Không thể lưu ảnh chụp màn hình khi bị timeout cho mã '{tracking_number}': {ss_e}")
             return None, f"Không tìm thấy kết quả cho '{tracking_number}' (Timeout)."
         except Exception as e:
-            logger.error(f"Đã xảy ra lỗi không mong muốn cho '{tracking_number}': {e}", exc_info=True)
+            t_total_fail = time.time()
+            logger.error(f"Đã xảy ra lỗi không mong muốn cho '{tracking_number}': {e} (Tổng thời gian: %.2fs)", t_total_fail - t_total_start, exc_info=True)
             return None, f"Đã xảy ra lỗi không mong muốn cho '{tracking_number}': {e}"
         finally:
             # Luôn chuyển về context mặc định

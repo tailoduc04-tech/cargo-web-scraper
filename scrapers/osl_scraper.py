@@ -6,9 +6,13 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException, NoSuchElementException
 import traceback
 import time
+import logging  # <--- Tớ đã thêm module logging
 
 from .base_scraper import BaseScraper
 from schemas import N8nTrackingInfo
+
+# Khởi tạo logger cho module này
+logger = logging.getLogger(__name__)
 
 class OslScraper(BaseScraper):
     """
@@ -28,19 +32,25 @@ class OslScraper(BaseScraper):
             dt_obj = datetime.strptime(date_part, '%d-%b-%Y')
             return dt_obj.strftime('%d/%m/%Y')
         except (ValueError, IndexError):
-            print(f"    [OCL Scraper] Cảnh báo: Không thể phân tích định dạng ngày: {date_str}")
+            # Thay đổi print thành logger.warning
+            logger.warning("[OSL Scraper] Cảnh báo: Không thể phân tích định dạng ngày: %s", date_str)
             return date_str
 
     def scrape(self, tracking_number):
         """
         Phương thức scraping chính cho Oceanic Star Line.
         """
-        print(f"[OCL Scraper] Bắt đầu scrape cho mã: {tracking_number}")
+        logger.info("[OSL Scraper] Bắt đầu scrape cho mã: %s", tracking_number)
+        t_total_start = time.time() # Tổng thời gian bắt đầu
+        
         try:
+            t_nav_start = time.time()
             self.driver.get(self.config['url'])
             self.wait = WebDriverWait(self.driver, 30)
+            logger.info("-> (Thời gian) Tải trang: %.2fs", time.time() - t_nav_start)
 
-            print("[OCL Scraper] -> Điền thông tin tìm kiếm...")
+            logger.info("[OSL Scraper] -> Điền thông tin tìm kiếm...")
+            t_search_start = time.time()
             bl_input = self.wait.until(EC.element_to_be_clickable((By.ID, "bl_no")))
             bl_input.clear()
             bl_input.send_keys(tracking_number)
@@ -49,23 +59,31 @@ class OslScraper(BaseScraper):
             self.driver.execute_script("arguments[0].scrollIntoView(true);", search_button)
             time.sleep(0.5)
             search_button.click()
+            logger.info("-> (Thời gian) Gửi form tìm kiếm: %.2fs", time.time() - t_search_start)
 
-            print("[OCL Scraper] -> Chờ bảng kết quả tải...")
+            logger.info("[OSL Scraper] -> Chờ bảng kết quả tải...")
+            t_wait_result_start = time.time()
             self.wait.until(EC.visibility_of_element_located((By.ID, "listing-table")))
-            print("[OCL Scraper] -> Bảng kết quả đã tải. Bắt đầu trích xuất.")
+            logger.info("-> Bảng kết quả đã tải. (Thời gian chờ: %.2fs)", time.time() - t_wait_result_start)
 
+            t_extract_start = time.time()
             normalized_data = self._extract_and_normalize_data(tracking_number)
+            logger.info("-> (Thời gian) Trích xuất dữ liệu: %.2fs", time.time() - t_extract_start)
 
             if not normalized_data:
                 return None, f"Không thể trích xuất dữ liệu đã chuẩn hóa cho '{tracking_number}'."
 
-            print("[OCL Scraper] -> Hoàn tất scrape thành công.")
+            t_total_end = time.time()
+            logger.info("[OSL Scraper] -> Hoàn tất scrape thành công. (Tổng thời gian: %.2fs)", t_total_end - t_total_start)
             return normalized_data, None
 
         except TimeoutException:
+            t_total_fail = time.time()
+            logger.warning("[OSL Scraper] Timeout. (Tổng thời gian: %.2fs)", t_total_fail - t_total_start)
             return None, f"Không tìm thấy kết quả cho '{tracking_number}' (Timeout)."
         except Exception as e:
-            traceback.print_exc()
+            t_total_fail = time.time()
+            logger.error("[OSL Scraper] Lỗi không mong muốn: %s (Tổng thời gian: %.2fs)", e, t_total_fail - t_total_start, exc_info=True)
             return None, f"Đã xảy ra lỗi không mong muốn cho '{tracking_number}': {e}"
 
     def _extract_all_events(self):
@@ -111,6 +129,7 @@ class OslScraper(BaseScraper):
         try:
             all_events = self._extract_all_events()
             if not all_events:
+                logger.warning("[OSL Scraper] Không tìm thấy sự kiện nào trong bảng.")
                 return None
 
             # --- Xác định các thông tin cơ bản ---
@@ -147,22 +166,6 @@ class OslScraper(BaseScraper):
                         ts_load_events.append(event)
 
             # --- Xây dựng đối tượng JSON cuối cùng ---
-            #shipment_data = {
-            #    "BookingNo": tracking_number,
-            #    "BlNumber": bl_number,
-            #    "BookingStatus": booking_status,
-            #    "Pol": pol,
-            #    "Pod": pod,
-            #    "Etd": None,
-            #    "Atd": self._format_date(departure_event.get("date")),
-            #    "Eta": None,
-            #    "Ata": self._format_date(arrival_event.get("date")),
-            #    "TransitPort": ", ".join(transit_ports) if transit_ports else None,
-            #    "EtdTransit": None,
-            #    "AtdTrasit": self._format_date(ts_load_events[0].get('date')) if ts_load_events else None,
-            #    "EtaTransit": None,
-            #    "AtaTrasit": self._format_date(ts_discharge_events[-1].get('date')) if ts_discharge_events else None,
-            #}
             
             shipment_data = N8nTrackingInfo(
                 BookingNo= tracking_number,
@@ -182,6 +185,5 @@ class OslScraper(BaseScraper):
             )
             return shipment_data
         except Exception as e:
-            print(f"    [OCL Scraper] Lỗi trong quá trình trích xuất: {e}")
-            traceback.print_exc()
+            logger.error("[OSL Scraper] Lỗi trong quá trình trích xuất: %s", e, exc_info=True)
             return None

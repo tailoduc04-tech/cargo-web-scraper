@@ -10,6 +10,8 @@ from schemas import N8nTrackingInfo, Result
 from typing import Tuple, Optional
 import logging
 
+STRICT_PAGES_LOAD = ["IAL", "MSK"]
+
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -32,7 +34,8 @@ def run_scraping_task(scraper_name: str, tracking_number: str) -> Tuple[Optional
 
     driver = None
     try:
-        driver = driver_setup.create_driver(selected_proxy)
+        page_load_strategy = 'normal' if scraper_name in STRICT_PAGES_LOAD else 'eager'
+        driver = driver_setup.create_driver(selected_proxy, page_load_strategy=page_load_strategy)
         scraper_config = config.SCRAPER_CONFIGS.get(scraper_name, {})
         scraper_instance = scrapers.get_scraper(scraper_name, driver, scraper_config)
 

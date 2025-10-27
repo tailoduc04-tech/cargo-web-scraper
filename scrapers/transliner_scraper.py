@@ -53,10 +53,7 @@ class TranslinerScraper(BaseScraper):
             self.wait.until(
                 EC.visibility_of_element_located((By.CSS_SELECTOR, "div.m_1b7284a3.mantine-Paper-root"))
             )
-            logger.info("-> Trang kết quả đã tải. Bắt đầu trích xuất.")
-            
-            # Đợi một chút để đảm bảo mọi script JS đã chạy và ổn định
-            time.sleep(1) 
+            logger.info("-> Trang kết quả đã tải. Bắt đầu trích xuất...")
 
             # Gọi hàm trích xuất và chuẩn hóa dữ liệu
             normalized_data = self._extract_and_normalize_data(tracking_number)

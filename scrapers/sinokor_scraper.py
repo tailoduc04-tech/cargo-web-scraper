@@ -7,6 +7,7 @@ from selenium.common.exceptions import TimeoutException, NoSuchElementException
 import re
 import traceback
 import logging
+import time # <--- Thêm import time
 
 from .base_scraper import BaseScraper
 from schemas import N8nTrackingInfo
@@ -45,7 +46,8 @@ class SinokorScraper(BaseScraper):
             return None, None
         try:
             # Lấy phần 'YYYY-MM-DD HH:MM'
-            date_part = " ".join(date_str.split(" ")[0:2])
+            date_list = date_str.split(" ")
+            date_part = " ".join(date_list[0] + " " + date_list[2])
             dt_obj = datetime.strptime(date_part, '%Y-%m-%d %H:%M')
             return dt_obj, date_str
         except (ValueError, IndexError):
@@ -58,63 +60,84 @@ class SinokorScraper(BaseScraper):
         URL được xây dựng động dựa trên mã tracking.
         """
         logger.info("Bắt đầu scrape cho mã Sinokor: %s", tracking_number)
+        t_total_start = time.time() # Tổng thời gian bắt đầu
         try:
             direct_url = f"{self.config['url']}{tracking_number}"
+            t_nav_start = time.time()
             self.driver.get(direct_url)
             self.wait = WebDriverWait(self.driver, 30)
+            logger.info("-> (Thời gian) Tải trang ban đầu: %.2fs", time.time() - t_nav_start)
 
             # Chờ cho panel schedule xuất hiện để chắc chắn trang đã tải
+            t_wait_panel_start = time.time()
             logger.debug("Đang chờ panel 'divSchedule' xuất hiện...")
             self.wait.until(EC.visibility_of_element_located((By.ID, "divSchedule")))
-            logger.info("Trang đã tải thành công. Bắt đầu trích xuất dữ liệu.")
-            
+            logger.info("Trang đã tải thành công. (Thời gian chờ panel: %.2fs)", time.time() - t_wait_panel_start)
+
             # Trích xuất và chuẩn hóa dữ liệu
+            t_extract_start = time.time()
             normalized_data = self._extract_and_normalize_data(tracking_number)
-            
+            logger.info("-> (Thời gian) Trích xuất dữ liệu: %.2fs", time.time() - t_extract_start)
+
+
             if not normalized_data:
                 logger.warning("Không thể trích xuất dữ liệu đã chuẩn hóa cho '%s'.", tracking_number)
                 return None, f"Không thể trích xuất dữ liệu đã chuẩn hóa cho '{tracking_number}'."
 
-            logger.info("Hoàn tất scrape thành công cho mã: %s", tracking_number)
+            t_total_end = time.time()
+            logger.info("Hoàn tất scrape thành công cho mã: %s (Tổng thời gian: %.2fs)",
+                         tracking_number, t_total_end - t_total_start)
             return normalized_data, None
 
         except TimeoutException:
+            t_total_fail = time.time()
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             screenshot_path = f"output/sinokor_timeout_{tracking_number}_{timestamp}.png"
             try:
                 self.driver.save_screenshot(screenshot_path)
-                logger.warning("Timeout khi scrape mã '%s'. Đã lưu ảnh chụp màn hình vào %s", tracking_number, screenshot_path)
+                logger.warning("Timeout khi scrape mã '%s'. Đã lưu ảnh chụp màn hình vào %s (Tổng thời gian: %.2fs)",
+                             tracking_number, screenshot_path, t_total_fail - t_total_start)
             except Exception as ss_e:
                 logger.error("Không thể lưu ảnh chụp màn hình khi bị timeout cho mã '%s': %s", tracking_number, ss_e)
             return None, f"Không tìm thấy kết quả cho '{tracking_number}'. Trang web có thể đang chậm hoặc mã không hợp lệ."
         except Exception as e:
-            logger.error("Đã xảy ra lỗi không mong muốn cho mã '%s': %s", tracking_number, exc_info=True)
+            t_total_fail = time.time()
+            logger.error("Đã xảy ra lỗi không mong muốn cho mã '%s': %s (Tổng thời gian: %.2fs)",
+                         tracking_number, e, t_total_fail - t_total_start, exc_info=True)
             return None, f"Đã xảy ra lỗi không mong muốn cho '{tracking_number}': {e}"
 
     def _extract_and_normalize_data(self, tracking_number):
         """
         Hàm chính để trích xuất, xử lý và chuẩn hóa dữ liệu từ trang chi tiết.
         """
+        logger.info("--- Bắt đầu trích xuất chi tiết cho mã: %s ---", tracking_number)
+        t_extract_detail_start = time.time()
         try:
             today_dt = datetime.now()
-            
+
             # 1. Trích xuất thông tin chung từ các panel
+            t_basic_info_start = time.time()
             logger.debug("Trích xuất thông tin B/L No và B/K Status...")
             bl_no = self._get_text_from_element(By.XPATH, "//label[contains(text(), 'B/L No.')]/../../div[contains(@class, 'font-bold')]/span")
             booking_status = self._get_text_from_element(By.XPATH, "//label[contains(text(), 'B/K Status')]/../../div[contains(@class, 'font-bold')]/span")
-            
+            logger.debug("-> (Thời gian) Trích xuất thông tin cơ bản: %.2fs", time.time() - t_basic_info_start)
+
             # 2. Trích xuất thông tin Schedule (chỉ chứa ETD và ETA)
+            t_schedule_start = time.time()
             logger.debug("Trích xuất thông tin Schedule (ETD, ETA)...")
             schedule_panel = self.wait.until(EC.presence_of_element_located((By.ID, "divSchedule")))
             etd_str = self._get_text_from_element(By.CSS_SELECTOR, "li.col-sm-8 .col-sm-6:nth-child(1)", parent=schedule_panel)
             eta_str = self._get_text_from_element(By.CSS_SELECTOR, "li.col-sm-8 .col-sm-6:nth-child(2)", parent=schedule_panel)
-            
+
             pol, etd = split_location_and_datetime(etd_str)
             pod, eta = split_location_and_datetime(eta_str)
-            
+
             logger.info("Thông tin Schedule: POL=%s, POD=%s, ETD=%s, ETA=%s", pol, pod, etd, eta)
+            logger.debug("-> (Thời gian) Trích xuất schedule: %.2fs", time.time() - t_schedule_start)
+
 
             # 3. Mở rộng bảng chi tiết Cargo Tracking
+            t_expand_start = time.time()
             logger.debug("Mở rộng panel Cargo Tracking...")
             cargo_tracking_panel_selector = "#wrapper > div > div > div:nth-child(5).panel.hpanel"
             cargo_tracking_panel = self.wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, cargo_tracking_panel_selector)))
@@ -124,13 +147,20 @@ class SinokorScraper(BaseScraper):
                      self.driver.execute_script("arguments[0].click();", toggle_button)
                      self.wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR, f"{cargo_tracking_panel_selector} #divDetailInfo div.splitTable")))
                      logger.info("Đã mở rộng panel Cargo Tracking.")
+                else:
+                    logger.debug("Panel Cargo Tracking đã mở sẵn.")
             except Exception:
                 logger.info("Panel Cargo Tracking đã mở sẵn hoặc không thể nhấn nút.")
                 pass
+            logger.debug("-> (Thời gian) Mở rộng panel: %.2fs", time.time() - t_expand_start)
+
 
             # 4. Trích xuất lịch sử sự kiện và tìm các ngày thực tế / transit
+            t_history_start = time.time()
             history_events = self._extract_history_events(cargo_tracking_panel)
-            
+            logger.debug("-> (Thời gian) Trích xuất lịch sử sự kiện: %.2fs", time.time() - t_history_start)
+
+            t_process_events_start = time.time()
             atd = None
             ata = None
             transit_port_list = []
@@ -152,7 +182,7 @@ class SinokorScraper(BaseScraper):
                 elif atd_dt:
                     etd = atd_str_full # Đây là ngày Estimated mới, cập nhật ETD
                     logger.info("Cập nhật ETD từ lịch sử: %s", etd)
-            
+
             # Xử lý ATA (so sánh với ngày hiện tại)
             if pod_arrival_event:
                 ata_dt, ata_str_full = self._parse_event_datetime(pod_arrival_event.get("date"))
@@ -168,11 +198,11 @@ class SinokorScraper(BaseScraper):
             for event in history_events:
                 desc = event.get("description", "").lower()
                 loc = event.get("location", "")
-                
+
                 if ("departure" in desc or "arrival" in desc):
                     is_pol_event = (event == atd_event)
                     is_pod_event = (event == pod_arrival_event)
-                    
+
                     # Bỏ qua nếu là sự kiện ở POL hoặc POD
                     if is_pol_event or is_pod_event:
                         continue
@@ -181,30 +211,26 @@ class SinokorScraper(BaseScraper):
                     logger.debug("Phát hiện sự kiện transit: %s tại %s", desc, loc)
                     if loc and loc not in transit_port_list:
                         transit_port_list.append(loc)
-                    
+
                     event_dt, event_str = self._parse_event_datetime(event.get("date"))
                     if not event_dt:
                         continue
 
                     if "arrival" in desc:
                         if event_dt <= today_dt:
-                            # Lấy ngày *actual* arrival đầu tiên tại cảng transit
                             if not ata_transit:
                                 ata_transit = event_str
                                 logger.debug("Tìm thấy AtaTransit (Actual): %s", ata_transit)
                         else:
-                            # Lấy ngày *estimated* arrival đầu tiên tại cảng transit
                             if not eta_transit:
                                 eta_transit = event_str
                                 logger.debug("Tìm thấy EtaTransit (Estimated): %s", eta_transit)
-                    
+
                     if "departure" in desc:
                         if event_dt <= today_dt:
-                            # Lấy ngày *actual* departure cuối cùng từ cảng transit
-                            atd_transit = event_str
+                            atd_transit = event_str # Lấy cái cuối cùng
                             logger.debug("Tìm thấy AtdTransit (Actual): %s", atd_transit)
                         else:
-                            # Thêm vào danh sách các ngày departure trong tương lai
                             future_etd_transits.append((event_dt, event_str))
                             logger.debug("Thêm EtdTransit (Estimated) vào danh sách: %s", event_str)
 
@@ -216,10 +242,13 @@ class SinokorScraper(BaseScraper):
                 logger.info("EtdTransit (Estimated) gần nhất được chọn: %s", etd_transit_final)
             else:
                  logger.info("Không tìm thấy EtdTransit nào trong tương lai.")
+            logger.debug("-> (Thời gian) Xử lý sự kiện và transit: %.2fs", time.time() - t_process_events_start)
+
 
             # 6. Xây dựng đối tượng JSON theo template N8nTrackingInfo
+            t_normalize_start = time.time()
             shipment_data = N8nTrackingInfo(
-                  BookingNo= tracking_number, # Sinokor không hiển thị Booking No, dùng tracking_number
+                  BookingNo= tracking_number,
                   BlNumber= bl_no or "",
                   BookingStatus= booking_status or "",
                   Pol= pol or "",
@@ -234,12 +263,16 @@ class SinokorScraper(BaseScraper):
                   EtaTransit= self._format_date(eta_transit) or "",
                   AtaTransit= self._format_date(ata_transit) or ""
             )
-            
+
             logger.info("Đã tạo đối tượng N8nTrackingInfo thành công.")
+            logger.debug("-> (Thời gian) Chuẩn hóa dữ liệu cuối cùng: %.2fs", time.time() - t_normalize_start)
+            logger.info("--- Hoàn tất trích xuất chi tiết. (Tổng thời gian trích xuất: %.2fs) ---", time.time() - t_extract_detail_start)
+
             return shipment_data
 
         except Exception as e:
             logger.error("Lỗi trong quá trình trích xuất chi tiết cho mã '%s': %s", tracking_number, exc_info=True)
+            logger.info("--- Hoàn tất trích xuất chi tiết (lỗi). (Tổng thời gian trích xuất: %.2fs) ---", time.time() - t_extract_detail_start)
             return None
 
     def _extract_history_events(self, cargo_tracking_panel):
@@ -248,50 +281,49 @@ class SinokorScraper(BaseScraper):
         """
         events = []
         try:
-            logger.debug("Đang tìm bảng chi tiết sự kiện...")
+            logger.debug("--> Đang tìm bảng chi tiết sự kiện...")
             detail_table_body = cargo_tracking_panel.find_element(By.CSS_SELECTOR, "#divDetailInfo .splitTable table tbody")
             rows = detail_table_body.find_elements(By.TAG_NAME, "tr")
-            logger.info("Tìm thấy %d hàng trong bảng lịch sử sự kiện.", len(rows))
-            
+            logger.info("--> Tìm thấy %d hàng trong bảng lịch sử sự kiện.", len(rows))
+
             current_event_group = ""
             is_container_event = False
-            
+
             for row in rows:
                 header_th = row.find_elements(By.CSS_SELECTOR, "th.firstTh")
                 if header_th:
                     current_event_group = header_th[0].text.strip()
-                    # Xác định xem đây là nhóm sự kiện của container (Pickup/Return) hay tàu (Departure/Arrival)
                     is_container_event = "pickup" in current_event_group.lower() or "return" in current_event_group.lower()
+                    logger.debug("---> Processing event group: %s (Container: %s)", current_event_group, is_container_event)
                     continue
-                
+
                 cells = row.find_elements(By.TAG_NAME, "td")
                 if not cells or len(cells) < 3:
-                    continue # Bỏ qua các hàng không hợp lệ
-                
+                    logger.debug("---> Skipping invalid row.")
+                    continue
+
                 date_text, location, description = "", "", ""
-                
+
                 if is_container_event:
-                    # Cấu trúc: CNTR No., Location, Date & Time
                     cntr_no, location, date_text = [c.text.strip() for c in cells]
                     description = f"{current_event_group}: {cntr_no}"
                 else:
-                    # Cấu trúc: Vessel / Voyage, Location, Date & Time
                     vessel_voyage, location, date_text = [c.text.strip() for c in cells]
-                    # Chúng ta cần description là 'Departure' hoặc 'Arrival'
-                    # current_event_group chính là 'Departure' hoặc 'Arrival'
                     description = f"{current_event_group}: {vessel_voyage}"
-                
+
                 if date_text:
-                    events.append({"description": description, "location": location, "date": date_text})
-                    
+                    event_data = {"description": description, "location": location, "date": date_text}
+                    events.append(event_data)
+                    logger.debug("---> Extracted event: %s", event_data)
+
         except NoSuchElementException:
-            logger.info("Không tìm thấy bảng chi tiết sự kiện (#divDetailInfo), có thể không có dữ liệu.")
+            logger.info("--> Không tìm thấy bảng chi tiết sự kiện (#divDetailInfo), có thể không có dữ liệu.")
             pass
         except Exception as e:
-            logger.warning("Lỗi khi trích xuất lịch sử sự kiện: %s", e, exc_info=True)
+            logger.warning("--> Lỗi khi trích xuất lịch sử sự kiện: %s", e, exc_info=True)
             pass
-            
-        logger.info("Trích xuất được %d sự kiện từ lịch sử.", len(events))
+
+        logger.info("--> Trích xuất được %d sự kiện từ lịch sử.", len(events))
         return events
 
     def _find_event(self, events, description_keyword, location_keyword):
@@ -299,19 +331,21 @@ class SinokorScraper(BaseScraper):
         Tìm sự kiện cụ thể (ví dụ: 'Departure' tại 'Ningbo').
         """
         if not location_keyword:
+            logger.debug("--> _find_event: Thiếu location_keyword cho '%s'", description_keyword)
             return None
-        
+
+        logger.debug("--> _find_event: Tìm '%s' tại '%s'", description_keyword, location_keyword)
         for event in events:
-            # Kiểm tra từ khóa (ví dụ: 'Departure') ở phần đầu của mô tả (ví dụ: 'Departure: TS HONGKONG...')
+            # Kiểm tra từ khóa (ví dụ: 'Departure') ở phần đầu của mô tả
             desc_match = description_keyword.lower() in event.get("description", "").lower().split(':')[0]
             # Kiểm tra địa điểm
             loc_match = location_keyword.lower() in event.get("location", "").lower()
-            
+
             if desc_match and loc_match:
-                logger.debug("Tìm thấy sự kiện khớp: %s tại %s", description_keyword, location_keyword)
+                logger.debug("---> Khớp: %s", event)
                 return event
-                
-        logger.debug("Không tìm thấy sự kiện khớp: %s tại %s", description_keyword, location_keyword)
+
+        logger.debug("---> Không khớp.")
         return None
 
     def _get_text_from_element(self, by, value, parent=None):
@@ -332,16 +366,14 @@ def split_location_and_datetime(input_string):
     """
     if not input_string:
         return "", ""
-    
-    # Pattern tìm kiếm ngày giờ YYYY-MM-DD HH:MM
+
     pattern = r'(\d{4}-\d{2}-\d{2}\s\d{2}:\d{2})'
     match = re.search(pattern, input_string)
-    
+
     if match:
         split_index = match.start()
         location_part = input_string[:split_index].strip()
         datetime_part = match.group(0)
         return location_part, datetime_part
     else:
-        # Nếu không tìm thấy, giả sử toàn bộ là location
         return input_string.strip(), ""

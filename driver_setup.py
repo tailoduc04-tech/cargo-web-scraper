@@ -3,12 +3,14 @@ import shutil
 import zipfile
 from selenium import webdriver
 
-def create_driver(proxy_config=None):
+def create_driver(proxy_config=None, page_load_strategy='eager'):
     """
     Khởi tạo driver bằng cách kết nối tới Selenium Grid/Hub đang chạy
     và sử dụng extension để xử lý xác thực proxy.
     """
     options = webdriver.ChromeOptions()
+    options.page_load_strategy = page_load_strategy
+    # --------------------------
 
     # --- Các tùy chọn nâng cao để chống phát hiện ---
     options.add_argument("--start-maximized")
@@ -21,7 +23,7 @@ def create_driver(proxy_config=None):
     options.add_argument("--window-size=1920,1080")
 
     # User-agent
-    user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36"
+    user_agent = "Mozilla.5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36"
     options.add_argument(f'user-agent={user_agent}')
 
     # Nếu có cấu hình proxy, tạo và thêm extension để xác thực
@@ -43,10 +45,7 @@ def create_driver(proxy_config=None):
         os.remove(plugin_zip)
 
     # --- Chạy các script để che giấu dấu vết của Selenium ---
-    # Script để ẩn 'navigator.webdriver'
     driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
-
-    # Script để giả mạo các thuộc tính khác mà bot hay thiếu
     driver.execute_script("""
         Object.defineProperty(navigator, 'plugins', {
             get: () => [

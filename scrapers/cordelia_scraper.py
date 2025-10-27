@@ -1,6 +1,7 @@
 import logging
 import pandas as pd
 from datetime import datetime
+import time  # <--- Tớ đã thêm module time
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
@@ -42,44 +43,62 @@ class CordeliaScraper(BaseScraper):
         và trả về ở định dạng JSON chuẩn hóa.
         """
         logger.info("Bắt đầu scrape cho mã: %s", tracking_number)
+        t_total_start = time.time() # Tổng thời gian bắt đầu
+
         try:
             url = f"{self.config['url']}{tracking_number}"
+            
+            t_nav_start = time.time()
             self.driver.get(url)
+            logger.info("-> (Thời gian) Tải trang: %.2fs", time.time() - t_nav_start)
+
             self.wait = WebDriverWait(self.driver, 30)
 
             # Chờ cho bảng kết quả được JavaScript tải xong
             # Trang web có một div với id="loader" sẽ biến mất khi tải xong
             logger.info("Chờ 'loader' biến mất...")
+            t_wait_loader_start = time.time()
             self.wait.until(EC.invisibility_of_element_located((By.ID, "loader")))
-            logger.info("'loader' đã biến mất.")
+            logger.info("'loader' đã biến mất. (Thời gian chờ loader: %.2fs)", time.time() - t_wait_loader_start)
             
             # Sau đó, đợi bảng dữ liệu chính xuất hiện
+            logger.info("Chờ bảng dữ liệu chính 'checkShedTable'...")
+            t_wait_table_start = time.time()
             result_table = self.wait.until(
                 EC.visibility_of_element_located((By.ID, "checkShedTable"))
             )
-            logger.info("Cordelia: Trang kết quả đã được tải và bảng dữ liệu đã hiển thị.")
+            logger.info("Bảng dữ liệu đã hiển thị. (Thời gian chờ bảng: %.2fs)", time.time() - t_wait_table_start)
 
             # Trích xuất và chuẩn hóa dữ liệu sang định dạng JSON mong muốn
+            t_extract_start = time.time()
             normalized_data = self._extract_and_normalize_data(result_table, tracking_number)
+            logger.info("-> (Thời gian) Trích xuất dữ liệu: %.2fs", time.time() - t_extract_start)
 
             if not normalized_data:
                 logger.warning("Không thể trích xuất dữ liệu đã chuẩn hóa cho '%s'.", tracking_number)
                 return None, f"Không thể trích xuất dữ liệu đã chuẩn hóa cho '{tracking_number}'."
 
-            logger.info("Hoàn tất scrape thành công cho mã: %s", tracking_number)
+            t_total_end = time.time()
+            logger.info("Hoàn tất scrape thành công cho mã: %s (Tổng thời gian: %.2fs)", 
+                         tracking_number, t_total_end - t_total_start)
             return normalized_data, None
 
         except TimeoutException:
+            t_total_fail = time.time()
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             screenshot_path = f"output/cordelia_timeout_{tracking_number}_{timestamp}.png"
             try:
                 self.driver.save_screenshot(screenshot_path)
-                logger.warning("Timeout khi scrape mã '%s'. Đã lưu ảnh chụp màn hình vào %s", tracking_number, screenshot_path)
+                logger.warning("Timeout khi scrape mã '%s'. Đã lưu ảnh chụp màn hình vào %s (Tổng thời gian: %.2fs)", 
+                             tracking_number, screenshot_path, t_total_fail - t_total_start)
             except Exception as ss_e:
-                logger.error("Không thể lưu ảnh chụp màn hình khi bị timeout cho mã '%s': %s", tracking_number, ss_e)
+                logger.error("Không thể lưu ảnh chụp màn hình khi bị timeout cho mã '%s': %s", 
+                             tracking_number, ss_e)
             return None, f"Không tìm thấy kết quả cho '{tracking_number}' (Timeout)."
         except Exception as e:
-            logger.error("Đã xảy ra lỗi không mong muốn khi scrape mã '%s': %s", tracking_number, e, exc_info=True)
+            t_total_fail = time.time()
+            logger.error("Đã xảy ra lỗi không mong muốn khi scrape mã '%s': %s (Tổng thời gian: %.2fs)", 
+                         tracking_number, e, t_total_fail - t_total_start, exc_info=True)
             return None, f"Đã xảy ra lỗi không mong muốn cho '{tracking_number}': {e}"
 
     def _extract_and_normalize_data(self, table, tracking_number):
