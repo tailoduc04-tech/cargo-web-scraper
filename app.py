@@ -10,7 +10,7 @@ from schemas import N8nTrackingInfo, Result
 from typing import Tuple, Optional
 import logging
 
-STRICT_PAGES_LOAD = ["IAL", "MSK"]
+STRICT_PAGES_LOAD = ["IAL", "MSK", "SEALEAD"]
 
 logging.basicConfig(
     level=logging.INFO,

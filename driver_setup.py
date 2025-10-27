@@ -9,7 +9,8 @@ def create_driver(proxy_config=None, page_load_strategy='eager'):
     và sử dụng extension để xử lý xác thực proxy.
     """
     options = webdriver.ChromeOptions()
-    options.page_load_strategy = page_load_strategy
+    if page_load_strategy=='eager':
+        options.page_load_strategy = page_load_strategy
     # --------------------------
 
     # --- Các tùy chọn nâng cao để chống phát hiện ---
@@ -23,7 +24,7 @@ def create_driver(proxy_config=None, page_load_strategy='eager'):
     options.add_argument("--window-size=1920,1080")
 
     # User-agent
-    user_agent = "Mozilla.5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36"
+    user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36"
     options.add_argument(f'user-agent={user_agent}')
 
     # Nếu có cấu hình proxy, tạo và thêm extension để xác thực
