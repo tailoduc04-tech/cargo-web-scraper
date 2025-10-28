@@ -1,12 +1,11 @@
 import logging
-import requests # <--- Thay thế Selenium imports bằng requests
+import requests
 import time
 from datetime import datetime, date
 
 from .base_scraper import BaseScraper
 from schemas import N8nTrackingInfo
 
-# Khởi tạo logger cho module này
 logger = logging.getLogger(__name__)
 
 class SitcScraper(BaseScraper):
@@ -15,9 +14,9 @@ class SitcScraper(BaseScraper):
     và chuẩn hóa kết quả theo template JSON yêu cầu.
     """
 
-    def __init__(self, driver, config): # driver không còn được sử dụng nhưng giữ để tương thích
-        self.config = config # config có thể vẫn cần nếu URL gốc thay đổi
-        self.base_url = "https://ebusiness.sitcline.com/" # URL để lấy cookie
+    def __init__(self, driver, config):
+        self.config = config
+        self.base_url = "https://ebusiness.sitcline.com/"
         self.api_url = "https://ebusiness.sitcline.com/api/equery/cargoTrack/searchTrack"
         self.session = requests.Session()
         self.session.headers.update({
@@ -43,7 +42,6 @@ class SitcScraper(BaseScraper):
         if not date_str or not isinstance(date_str, str):
             return ""
         try:
-            # Lấy phần ngày tháng, bỏ qua phần giờ nếu có
             date_part = date_str.split(" ")[0]
             if not date_part:
                 return ""
@@ -51,7 +49,7 @@ class SitcScraper(BaseScraper):
             return dt_obj.strftime('%d/%m/%Y')
         except (ValueError, IndexError):
             logger.warning("[SITC API Scraper] Không thể phân tích định dạng ngày: %s", date_str)
-            return "" # Trả về "", không phải None
+            return ""
 
     def scrape(self, tracking_number):
         """
@@ -106,7 +104,7 @@ class SitcScraper(BaseScraper):
         except requests.exceptions.HTTPError as e:
             t_total_fail = time.time()
             logger.error("[SITC API Scraper] Lỗi HTTP %s khi gọi API cho mã '%s' (Tổng thời gian: %.2fs)",
-                         e.response.status_code, tracking_number, t_total_fail - t_total_start, exc_info=False) # Không cần full traceback
+                         e.response.status_code, tracking_number, t_total_fail - t_total_start, exc_info=False)
             return None, f"Lỗi HTTP {e.response.status_code} khi truy vấn '{tracking_number}'."
         except requests.exceptions.RequestException as e:
              t_total_fail = time.time()
@@ -132,7 +130,6 @@ class SitcScraper(BaseScraper):
 
             list1 = api_data.get("list1", [])
             bl_number = list1[0].get("blNo") if list1 else tracking_number_input
-            # API này không có BookingNo riêng, dùng BlNumber
             booking_no = bl_number
             logger.info("[SITC API Scraper] Đã tìm thấy BlNumber: %s", bl_number)
 

@@ -29,7 +29,7 @@ tracking_data = {
 
 # --- Cấu hình ---
 API_ENDPOINT = "http://localhost:8000/api/v1/track"
-NUM_REQUESTS = 5
+NUM_REQUESTS = 3
 
 # --- Script chính ---
 results = defaultdict(list)
