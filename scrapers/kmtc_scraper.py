@@ -143,30 +143,6 @@ class KmtcScraper(BaseScraper):
 
             logger.info(f"[KMTC Scraper] -> Thông tin tóm tắt: POL='{pol}', POD='{pod}', ETD='{etd}', ETA='{eta}'")
 
-            # --- 2. Cập nhật timeline nếu có nhiều container ---
-            logger.info("[KMTC Scraper] -> Kiểm tra container links để cập nhật timeline...")
-            t_check_container_start = time.time()
-            first_container_link = None
-            try:
-                first_container_link = self.driver.find_element(By.CSS_SELECTOR, "a.cntrNo_area.link")
-            except NoSuchElementException:
-                logger.info("[KMTC Scraper] -> Không có container nào là link. Sử dụng timeline mặc định.")
-
-            if first_container_link:
-                container_no = first_container_link.text
-                logger.info(f"  -> Container '{container_no}' là một link, thực hiện click...")
-                self.driver.execute_script("arguments[0].click();", first_container_link)
-                # Chờ cho header của timeline cập nhật số container
-                WebDriverWait(self.driver, 2).until(
-                    EC.text_to_be_present_in_element((By.CSS_SELECTOR, ".location_detail_header .ship_num"), container_no)
-                )
-                time.sleep(0.5) # Chờ JS render
-                logger.info("  -> Timeline đã được cập nhật cho container '%s'. (Thời gian: %.2fs)", container_no, time.time() - t_check_container_start)
-
-            else:
-                logger.info("[KMTC Scraper] -> Sử dụng timeline của container mặc định. (Thời gian kiểm tra: %.2fs)", time.time() - t_check_container_start)
-
-
             # --- 3. Trích xuất lịch sử từ biểu đồ tiến trình ---
             logger.debug("Trích xuất lịch sử từ timeline...")
             all_events = self._extract_events_from_timeline()
