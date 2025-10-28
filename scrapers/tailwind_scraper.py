@@ -112,7 +112,7 @@ class TailwindScraper(BaseScraper):
                  # Có thể raise lỗi ở đây nếu cần
 
             t_wait_result_start = time.time()
-            self.wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR, "div.stepwizard")))
+            self.wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "div.stepwizard")))
             logger.info("Trang kết quả đã tải thành công. (Thời gian chờ kết quả: %.2fs)", time.time() - t_wait_result_start)
 
 
