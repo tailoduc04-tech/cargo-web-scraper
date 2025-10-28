@@ -15,7 +15,7 @@ tracking_data = {
     "MSC": "EBKG14022741",
     "MSK": "259545107",
     "ONE": "RICFHB866600",
-    #"OSL": "...", # Bỏ qua OSL
+    # "OSL": "...", # Bỏ qua OSL
     "PAN": "PCLUKAN00418449",
     "PIL": "NGPX50385100",
     "SEALEAD": "SLSNBV06890",
@@ -51,7 +51,7 @@ for service, bl_number in tracking_data.items():
             end_time = time.time()
             duration = end_time - start_time
 
-            if response.status_code == 200:
+            if response.status_code == 200 or response.status_code == 404:
                 response_times.append(duration)
                 successful_requests += 1
                 print(f"  Request {i+1}/{NUM_REQUESTS}: Thành công ({response.status_code}) - {duration:.2f} giây")

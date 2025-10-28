@@ -15,27 +15,14 @@ services:
       - selenium
     networks:
       - app-network
-    deploy:
-      resources:
-        limits:
-          cpus: '1.5'
-          memory: 1.5G
 
   selenium:
     image: selenium/standalone-chrome:latest
     container_name: selenium_chrome
-    shm_size: 2g
+    shm_size: 4g
     restart: unless-stopped
-    environment:
-      - SE_NODE_MAX_SESSIONS=5
-      - SE_NODE_OVERRIDE_MAX_SESSIONS=true
     networks:
       - app-network
-    deploy:
-      resources:
-        limits:
-          cpus: '4'
-          memory: 4G
 
 networks:
   app-network:
