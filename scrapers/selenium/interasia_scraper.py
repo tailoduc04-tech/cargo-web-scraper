@@ -8,13 +8,13 @@ from selenium.common.exceptions import NoSuchElementException, TimeoutException
 import re
 import time # <--- Thêm import time
 
-from .base_scraper import BaseScraper
+from ..selenium_scraper import SeleniumScraper
 from schemas import N8nTrackingInfo
 
 # Thiết lập logger cho module này
 logger = logging.getLogger(__name__)
 
-class InterasiaScraper(BaseScraper):
+class InterasiaScraper(SeleniumScraper):
     """
     Triển khai logic scraping cụ thể cho trang Interasia (đã cập nhật)
     và chuẩn hóa kết quả theo template JSON yêu cầu, sử dụng logging.

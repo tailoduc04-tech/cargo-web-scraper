@@ -9,13 +9,13 @@ import time # <--- Thêm import time
 import traceback
 import re # <--- Thêm import re (đã có sẵn)
 
-from .base_scraper import BaseScraper
+from ..selenium_scraper import SeleniumScraper
 from schemas import N8nTrackingInfo
 
 # Thiết lập logger cho module này
 logger = logging.getLogger(__name__)
 
-class TailwindScraper(BaseScraper):
+class TailwindScraper(SeleniumScraper):
     """
     Triển khai logic scraping cụ thể cho trang web Tailwind Shipping.
     Sử dụng Selenium để trích xuất dữ liệu và chuẩn hóa theo

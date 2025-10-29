@@ -7,13 +7,13 @@ from selenium.common.exceptions import TimeoutException, NoSuchElementException
 import time # <--- Thêm import time
 import traceback
 import logging
-from .base_scraper import BaseScraper
+from ..selenium_scraper import SeleniumScraper
 from schemas import N8nTrackingInfo
 
 # Lấy logger cho module này
 logger = logging.getLogger(__name__)
 
-class MaerskScraper(BaseScraper):
+class MaerskScraper(SeleniumScraper):
     """
     Triển khai logic scraping cụ thể cho trang Maersk.
     Sử dụng phương pháp truy cập URL trực tiếp

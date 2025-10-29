@@ -6,13 +6,13 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException, NoSuchElementException
 
-from .base_scraper import BaseScraper
+from ..selenium_scraper import SeleniumScraper
 from schemas import N8nTrackingInfo
 
 # Khởi tạo logger cho module này
 logger = logging.getLogger(__name__)
 
-class YangmingScraper(BaseScraper):
+class YangmingScraper(SeleniumScraper):
     """
     Triển khai logic scraping cụ thể cho trang Yang Ming (YM) và chuẩn hóa
     kết quả theo template JSON (N8nTrackingInfo).

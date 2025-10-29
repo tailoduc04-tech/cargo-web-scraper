@@ -7,13 +7,13 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException, NoSuchElementException
 import time  # <--- Tớ đã thêm module time
 
-from .base_scraper import BaseScraper
+from ..selenium_scraper import SeleniumScraper
 from schemas import N8nTrackingInfo
 
 # Lấy logger cho module này
 logger = logging.getLogger(__name__)
 
-class EmcScraper(BaseScraper):
+class EmcScraper(SeleniumScraper):
     """
     Triển khai logic scraping cụ thể cho trang Evergreen (EMC)
     và chuẩn hóa kết quả theo template JSON yêu cầu.
