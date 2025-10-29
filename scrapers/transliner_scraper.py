@@ -1,176 +1,211 @@
 import logging
-import pandas as pd
-from datetime import datetime, date
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.common.exceptions import TimeoutException, NoSuchElementException
-import traceback
+import requests
+import json
 import time
-import re
+from datetime import datetime, date
 
 from .base_scraper import BaseScraper
 from schemas import N8nTrackingInfo
 
-# Khởi tạo logger cho module này
 logger = logging.getLogger(__name__)
 
 class TranslinerScraper(BaseScraper):
     """
-    Triển khai logic scraping cụ thể cho trang Transliner
+    Triển khai logic scraping cụ thể cho trang Transliner bằng cách gọi API trực tiếp
     và chuẩn hóa kết quả theo template JSON.
     """
 
+    def __init__(self, driver, config):
+        self.config = config
+        self.api_url_template = "https://translinergroup.track.tigris.systems/api/bookings/{booking_number}"
+        self.session = requests.Session()
+        # Headers cơ bản
+        self.session.headers.update({
+            'Accept': 'application/json, text/plain, */*',
+            'Accept-Language': 'en-US,en;q=0.9',
+            'Origin': 'https://translinergroup.track.tigris.systems',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36',
+        })
+
     def _format_date(self, date_str):
         """
-        Chuyển đổi chuỗi ngày từ 'DD Mon YYYY' (ví dụ: 8 Sept 2025) sang 'DD/MM/YYYY'.
-        Trả về None nếu đầu vào không hợp lệ.
+        Chuyển đổi chuỗi ngày từ API format 'YYYY-MM-DDTHH:MM:SSZ' sang 'DD/MM/YYYY'.
+        Trả về "" nếu đầu vào không hợp lệ hoặc rỗng.
         """
-        if not date_str or not isinstance(date_str, str) or date_str.strip() == '-':
-            return None
+        if not date_str or not isinstance(date_str, str):
+            return ""
         try:
-            # Định dạng của trang web là '%d %b %Y'
-            dt_obj = datetime.strptime(date_str.strip(), '%d %b %Y')
+            # Lấy phần ngày tháng năm, bỏ qua phần giờ và Z
+            date_part = date_str.split('T')[0]
+            if not date_part:
+                return ""
+            dt_obj = datetime.strptime(date_part, '%Y-%m-%d')
             return dt_obj.strftime('%d/%m/%Y')
         except (ValueError, IndexError):
-            logger.warning("Không thể phân tích định dạng ngày: %s", date_str)
-            return None # Trả về None để logic gọi hàm xử lý (thường là `or ""`)
+            logger.warning("[Transliner API Scraper] Không thể phân tích định dạng ngày: %s", date_str)
+            return "" # Trả về chuỗi rỗng nếu lỗi
 
     def scrape(self, tracking_number):
         """
-        Phương thức scraping chính cho Transliner.
-        Thực hiện tải trang, chờ đợi và gọi hàm trích xuất.
+        Phương thức scraping chính cho Transliner bằng API.
         """
-        logger.info("Bắt đầu scrape Transliner cho mã: %s", tracking_number)
+        logger.info("[Transliner API Scraper] Bắt đầu scrape cho mã: %s", tracking_number)
+        t_total_start = time.time()
+
+        # Xây dựng URL API động
+        api_url = self.api_url_template.format(booking_number=tracking_number)
+
+        # Parameters cho request
+        params = {
+            "include_emails": "true"
+        }
+        # Cập nhật Referer động
+        self.session.headers['Referer'] = f'https://translinergroup.track.tigris.systems/?ref={tracking_number}'
+
         try:
-            # Transliner hỗ trợ URL trực tiếp với mã tracking
-            direct_url = f"{self.config['url']}{tracking_number}"
-            self.driver.get(direct_url)
-            self.wait = WebDriverWait(self.driver, 30) # Chờ tối đa 30 giây
+            logger.info(f"[Transliner API Scraper] Gửi GET request đến: {api_url}")
+            t_request_start = time.time()
+            response = self.session.get(api_url, params=params, timeout=30)
+            logger.info("-> (Thời gian) Gọi API: %.2fs", time.time() - t_request_start)
+            response.raise_for_status() # Kiểm tra lỗi HTTP (4xx, 5xx)
 
-            # Chờ cho phần nội dung chính (khối tóm tắt) được tải
-            logger.info("-> Chờ trang kết quả tải...")
-            self.wait.until(
-                EC.visibility_of_element_located((By.CSS_SELECTOR, "div.m_1b7284a3.mantine-Paper-root"))
-            )
-            logger.info("-> Trang kết quả đã tải. Bắt đầu trích xuất...")
+            t_parse_start = time.time()
+            data = response.json()
+            logger.debug("-> (Thời gian) Parse JSON: %.2fs", time.time() - t_parse_start)
 
-            # Gọi hàm trích xuất và chuẩn hóa dữ liệu
-            normalized_data = self._extract_and_normalize_data(tracking_number)
+            # Kiểm tra response có dữ liệu cần thiết không (ví dụ: booking_number)
+            if not data or "booking_number" not in data:
+                 error_msg = "API không trả về dữ liệu thành công hoặc thiếu thông tin booking."
+                 logger.warning("[Transliner API Scraper] %s Response: %s", error_msg, data)
+                 return None, f"Không tìm thấy dữ liệu cho '{tracking_number}' trên API Transliner."
+
+            # Trích xuất và chuẩn hóa dữ liệu từ response JSON
+            t_extract_start = time.time()
+            normalized_data = self._extract_and_normalize_data_api(data, tracking_number)
+            logger.info("-> (Thời gian) Trích xuất và chuẩn hóa: %.2fs", time.time() - t_extract_start)
 
             if not normalized_data:
-                # _extract_and_normalize_data đã tự log lỗi
-                return None, f"Không thể trích xuất dữ liệu đã chuẩn hóa cho '{tracking_number}'."
+                logger.warning("[Transliner API Scraper] Không thể chuẩn hóa dữ liệu từ API cho mã: %s.", tracking_number)
+                return None, f"Không thể chuẩn hóa dữ liệu từ API cho '{tracking_number}'."
 
-            logger.info("-> Hoàn tất scrape Transliner thành công cho mã: %s.", tracking_number)
+            t_total_end = time.time()
+            logger.info("[Transliner API Scraper] Hoàn tất thành công cho mã: %s (Tổng thời gian: %.2fs)",
+                         tracking_number, t_total_end - t_total_start)
             return normalized_data, None
 
-        except TimeoutException:
-            logger.warning("Không tìm thấy kết quả cho '%s' (Timeout) trên Transliner.", tracking_number)
-            return None, f"Không tìm thấy kết quả cho '{tracking_number}' (Timeout)."
+        # --- Xử lý lỗi---
+        except requests.exceptions.Timeout:
+            t_total_fail = time.time()
+            logger.warning("[Transliner API Scraper] Timeout khi gọi API cho mã '%s' (Tổng thời gian: %.2fs)",
+                         tracking_number, t_total_fail - t_total_start)
+            return None, f"Không tìm thấy kết quả cho '{tracking_number}' (Timeout API)."
+        except requests.exceptions.HTTPError as e:
+            t_total_fail = time.time()
+            # Log cả response text khi có lỗi HTTP
+            logger.error("[Transliner API Scraper] Lỗi HTTP %s khi gọi API cho mã '%s'. Response: %s (Tổng thời gian: %.2fs)",
+                         e.response.status_code, tracking_number, e.response.text, t_total_fail - t_total_start, exc_info=False)
+            # Trả về thông báo lỗi thân thiện hơn nếu là 404
+            if e.response.status_code == 404:
+                 return None, f"Không tìm thấy thông tin cho mã '{tracking_number}' trên API Transliner."
+            return None, f"Lỗi HTTP {e.response.status_code} khi truy vấn '{tracking_number}'."
+        except requests.exceptions.RequestException as e:
+             t_total_fail = time.time()
+             logger.error("[Transliner API Scraper] Lỗi kết nối khi gọi API cho mã '%s': %s (Tổng thời gian: %.2fs)",
+                          tracking_number, e, t_total_fail - t_total_start, exc_info=True)
+             return None, f"Lỗi kết nối khi truy vấn '{tracking_number}': {e}"
+        except json.JSONDecodeError:
+             t_total_fail = time.time()
+             logger.error("[Transliner API Scraper] Không thể parse JSON từ response API cho mã '%s'. Response text: %s (Tổng thời gian: %.2fs)",
+                          tracking_number, response.text, t_total_fail - t_total_start)
+             return None, f"API Response không phải JSON hợp lệ cho '{tracking_number}'."
         except Exception as e:
-            # Ghi lại lỗi không mong muốn
-            logger.error("Đã xảy ra lỗi không mong muốn khi scrape Transliner cho '%s': %s", 
-                         tracking_number, e, exc_info=True)
+            t_total_fail = time.time()
+            logger.error("[Transliner API Scraper] Lỗi không mong muốn cho mã '%s': %s (Tổng thời gian: %.2fs)",
+                         tracking_number, e, t_total_fail - t_total_start, exc_info=True)
             return None, f"Đã xảy ra lỗi không mong muốn cho '{tracking_number}': {e}"
 
-    def _extract_and_normalize_data(self, tracking_number):
+    def _extract_and_normalize_data_api(self, api_data, tracking_number_input):
         """
-        Trích xuất và chuẩn hóa dữ liệu từ trang kết quả.
+        Trích xuất và chuẩn hóa dữ liệu từ dictionary JSON trả về của API Transliner/Tigris.
         """
+        logger.info("[Transliner API Scraper] --- Bắt đầu _extract_and_normalize_data_api ---")
+        t_extract_detail_start = time.time()
         try:
-            # Định vị khối tóm tắt chính chứa tất cả thông tin
-            summary_paper = self.wait.until(
-                EC.presence_of_element_located((By.CSS_SELECTOR, "div.m_1b7284a3.mantine-Paper-root"))
-            )
+            milestones = api_data.get("milestones", [])
 
-            # Helper function (định nghĩa nội bộ) để lấy text an toàn
-            def get_text_safe(element, selector):
-                """Lấy text, trả về None nếu không tìm thấy."""
-                try:
-                    return element.find_element(By.CSS_SELECTOR, selector).text.strip()
-                except NoSuchElementException:
-                    logger.warning("Không tìm thấy selector: %s", selector)
-                    return None
+            # === BƯỚC 1: LẤY THÔNG TIN CƠ BẢN ===
+            logger.debug("Bắt đầu trích xuất thông tin cơ bản...")
+            # API trả về booking_number và bill_of_lading giống nhau
+            booking_no = api_data.get("booking_number", tracking_number_input)
+            bl_number = api_data.get("bill_of_lading", booking_no)
+            # Lấy trạng thái từ milestone cuối cùng (mới nhất)
+            booking_status = milestones[-1].get("type", "") if milestones else ""
 
-            # === BƯỚC 1: TRÍCH XUẤT DỮ LIỆU TÓM TẮT ===
-            
-            # BookingNo và BlNumber
-            bl_number_raw = get_text_safe(summary_paper, "div.__m__-_r_33_ p:last-child")
-            bl_number = bl_number_raw or tracking_number # Dùng tracking_number nếu không tìm thấy
-            logger.info("Đã tìm thấy BlNumber: %s", bl_number)
+            # API này không trả về POL/POD trực tiếp trong thông tin cơ bản
+            pol = ""
+            pod = ""
 
-            booking_no_raw = get_text_safe(summary_paper, "div.__m__-_r_2k_ p:last-child")
-            booking_no = booking_no_raw or tracking_number # Dùng tracking_number nếu không tìm thấy
-            logger.info("Đã tìm thấy BookingNo: %s", booking_no)
-            
-            # BookingStatus
-            booking_status = get_text_safe(summary_paper, "div.__m__-_r_3a_ span.mantine-Badge-label")
-            logger.info("Đã tìm thấy BookingStatus: %s", booking_status)
-            
-            # POL và POD (Không có trên trang này)
-            pol_route = get_text_safe(summary_paper, "div.__m__-_r_2p_ p:last-child")
-            pod_route = get_text_safe(summary_paper, "div.__m__-_r_2u_ p:last-child")
-            
-            pol = pol_route or ""
-            pod = pod_route or ""
-            if not pol:
-                logger.info("Không tìm thấy thông tin POL (như dự kiến).")
-            if not pod:
-                logger.info("Không tìm thấy thông tin POD (như dự kiến).")
+            logger.info(f"Thông tin cơ bản: Booking='{booking_no}', BL='{bl_number}', Status='{booking_status}'")
+            logger.debug("-> (Thời gian) Trích xuất thông tin cơ bản: %.2fs", time.time() - t_extract_detail_start) # Log tạm
 
-            # ETD / ATD (từ cảng đi)
-            pol_etd_raw = get_text_safe(summary_paper, "div.__m__-_r_3f_ p:first-child")
-            pol_atd_raw = get_text_safe(summary_paper, "div.__m__-_r_3f_ p:last-child")
-            
-            # Làm sạch tiền tố "POL ETD:" và "POL ATD:"
-            etd_str = pol_etd_raw.replace("POL ETD:", "").strip() if pol_etd_raw else None
-            atd_str = pol_atd_raw.replace("POL ATD:", "").strip() if pol_atd_raw else None
-            
-            logger.info("Trích xuất được ETD string: %s", etd_str)
-            logger.info("Trích xuất được ATD string: %s", atd_str)
-
-            # ETA / ATA (tới cảng đích)
-            pod_eta_raw = get_text_safe(summary_paper, "div.__m__-_r_3m_ p:first-child")
-            pod_ata_raw = get_text_safe(summary_paper, "div.__m__-_r_3m_ p:last-child")
-
-            # Làm sạch tiền tố "POD ETA:" và "POD ATA:"
-            eta_str = pod_eta_raw.replace("POD ETA:", "").strip() if pod_eta_raw else None
-            ata_str = pod_ata_raw.replace("POD ATA:", "").strip() if pod_ata_raw else None
-            
-            logger.info("Trích xuất được ETA string: %s", eta_str)
-            logger.info("Trích xuất được ATA string: %s", ata_str)
-
-            # === BƯỚC 2: XỬ LÝ TRANSIT ===
-            logger.info("Không tìm thấy dữ liệu transit chi tiết. Các trường transit sẽ để trống.")
+            # === BƯỚC 2: XỬ LÝ SỰ KIỆN (Milestones) ===
+            t_event_start = time.time()
+            etd, atd, eta, ata = "", "", "", ""
             transit_port = ""
-            etd_transit = ""
-            atd_transit = ""
-            eta_transit = ""
-            ata_transit = ""
-            
-            # === BƯỚC 3: CHUẨN HÓA VÀ TRẢ VỀ ===
+            etd_transit, atd_transit, eta_transit, ata_transit = "", "", "", ""
+
+            if not milestones:
+                logger.warning("[Transliner API Scraper] Không có sự kiện (milestones) nào được trả về từ API.")
+            else:
+                logger.info("[Transliner API Scraper] Tìm thấy %d sự kiện (milestones) từ API. Bắt đầu xử lý...", len(milestones))
+                milestones.sort(key=lambda x: x.get("event_date") or "0000")
+
+                for event in milestones:
+                    event_type = event.get("type", "").upper()
+                    event_date = event.get("event_date")
+                    estimated_departure = event.get("estimated_departure_date")
+                    actual_departure = event.get("actual_departure_date")
+                    estimated_arrival = event.get("estimated_arrival_date")
+                    actual_arrival = event.get("actual_arrival_date")
+
+                    # Xác định ATD từ sự kiện VESSEL_DEPARTURE
+                    if event_type == "VESSEL_DEPARTURE":
+                        atd = actual_departure or event_date
+
+                    # Xác định ATA/ETA từ sự kiện DISCHARGED
+                    if event_type == "DISCHARGED":
+                        ata = actual_arrival or event_date # Ưu tiên actual_arrival
+                        eta = estimated_arrival # Lấy ETA nếu có
+
+            logger.info(f"Kết quả xử lý sự kiện: ETD='{etd}', ATD='{atd}', ETA='{eta}', ATA='{ata}'")
+            logger.info("API Transliner không cung cấp thông tin chi tiết về POL, POD, và Transit.")
+            logger.debug("-> (Thời gian) Xử lý sự kiện: %.2fs", time.time() - t_event_start)
+
+            # === BƯỚC 3: TẠO ĐỐI TƯỢNG JSON CHUẨN HÓA ===
+            t_normalize_start = time.time()
             shipment_data = N8nTrackingInfo(
-                BookingNo= booking_no,
-                BlNumber= bl_number,
+                BookingNo= booking_no or "",
+                BlNumber= bl_number or "",
                 BookingStatus= booking_status or "",
-                Pol= pol, # Đã là ""
-                Pod= pod, # Đã là ""
-                Etd= self._format_date(etd_str) or "",
-                Atd= self._format_date(atd_str) or "",
-                Eta= self._format_date(eta_str) or "",
-                Ata= self._format_date(ata_str) or "",
-                TransitPort= transit_port,  # ""
-                EtdTransit= etd_transit,   # ""
-                AtdTransit= atd_transit,   # ""
-                EtaTransit= eta_transit,   # ""
-                AtaTransit= ata_transit    # ""
+                Pol= pol or "",
+                Pod= pod or "",
+                Etd= self._format_date(etd) or "",
+                Atd= self._format_date(atd) or "",
+                Eta= self._format_date(eta) or "",
+                Ata= self._format_date(ata) or "",
+                TransitPort= transit_port or "",
+                EtdTransit= etd_transit or "",
+                AtdTransit= atd_transit or "",
+                EtaTransit= eta_transit or "",
+                AtaTransit= ata_transit or ""
             )
-            
-            logger.info("Đã tạo đối tượng N8nTrackingInfo thành công cho mã: %s", tracking_number)
+            logger.info("[Transliner API Scraper] Đã tạo đối tượng N8nTrackingInfo thành công.")
+            logger.debug("-> (Thời gian) Chuẩn hóa dữ liệu cuối cùng: %.2fs", time.time() - t_normalize_start)
+            logger.info("[Transliner API Scraper] --- Hoàn tất _extract_and_normalize_data_api --- (Tổng thời gian trích xuất: %.2fs)", time.time() - t_extract_detail_start)
             return shipment_data
-            
+
         except Exception as e:
-            logger.error("Lỗi trong quá trình trích xuất chi tiết cho '%s': %s", 
-                         tracking_number, e, exc_info=True)
+            # Log lỗi cụ thể khi trích xuất
+            logger.error("[Transliner API Scraper] Lỗi trong quá trình trích xuất chi tiết từ API cho mã '%s': %s", tracking_number_input, e, exc_info=True)
+            logger.info("[Transliner API Scraper] --- Hoàn tất _extract_and_normalize_data_api (lỗi) --- (Tổng thời gian trích xuất: %.2fs)", time.time() - t_extract_detail_start)
             return None
