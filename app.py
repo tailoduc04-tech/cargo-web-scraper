@@ -9,9 +9,10 @@ import scrapers
 from schemas import N8nTrackingInfo, Result
 from typing import Tuple, Optional
 import logging
+import time
 
 logging.basicConfig(
-    level=logging.INFO,
+    level=logging.WARNING,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
 )
 
@@ -32,9 +33,11 @@ def run_scraping_task(scraper_name: str, tracking_number: str) -> Tuple[Optional
 
     driver = None
     try:
+        start_driver_time = time.time()
         driver = driver_setup.create_driver(selected_proxy)
         scraper_config = config.SCRAPER_CONFIGS.get(scraper_name, {})
         scraper_instance = scrapers.get_scraper(scraper_name, driver, scraper_config)
+        print(f"Driver initialized in {time.time() - start_driver_time:.2f} seconds.")
 
         data, error = scraper_instance.scrape(tracking_number)
 

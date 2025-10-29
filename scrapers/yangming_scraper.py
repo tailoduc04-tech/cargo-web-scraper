@@ -46,7 +46,7 @@ class YangmingScraper(BaseScraper):
 
             # 1. Xử lý cookie nếu có
             try:
-                cookie_button = WebDriverWait(self.driver, 10).until(
+                cookie_button = WebDriverWait(self.driver, 2).until(
                     EC.element_to_be_clickable((By.CLASS_NAME, "cc-dismiss"))
                 )
                 cookie_button.click()

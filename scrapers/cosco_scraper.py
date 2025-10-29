@@ -6,6 +6,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException, NoSuchElementException
 import re
+import time
 
 from .base_scraper import BaseScraper
 from schemas import N8nTrackingInfo
@@ -34,7 +35,7 @@ class CoscoScraper(BaseScraper):
 
     def _extract_date_from_text(self, text, date_type):
         """
-        Trích xuất ngày 'Actual' hoặc 'Expected' từ một chuỗi. (Hàm này có vẻ không còn dùng trong logic mới, nhưng giữ lại phòng trường hợp cần)
+        Trích xuất ngày 'Actual' hoặc 'Expected' từ một chuỗi.
         """
         if not text or date_type not in text:
             return None
@@ -48,24 +49,30 @@ class CoscoScraper(BaseScraper):
         Phương thức scrape chính. Thực hiện tìm kiếm và trả về dữ liệu đã chuẩn hóa.
         """
         logger.info("Bắt đầu scrape cho mã: %s", tracking_number)
+        t_total_start = time.time()
+        
         try:
+            t_nav_start = time.time()
             self.driver.get(self.config['url'])
             self.wait = WebDriverWait(self.driver, 45)
+            logger.info("-> (Thời gian) Tải trang: %.2fs", time.time() - t_nav_start)
 
             # 1. Xử lý cookie nếu có
+            t_cookie_start = time.time()
             try:
-                cookie_button = WebDriverWait(self.driver, 10).until(
+                cookie_button = WebDriverWait(self.driver, 3).until(
                     EC.element_to_be_clickable((By.CSS_SELECTOR, ".btnBlue.ivu-btn-primary"))
                 )
                 cookie_button.click()
-                logger.info("Đã chấp nhận cookies.")
+                logger.info("Đã chấp nhận cookies. (Thời gian xử lý cookie: %.2fs)", time.time() - t_cookie_start)
             except TimeoutException:
-                logger.info("Banner cookie không xuất hiện hoặc đã được chấp nhận.")
+                logger.info("Banner cookie không xuất hiện hoặc đã được chấp nhận. (Thời gian kiểm tra: %.2fs)", time.time() - t_cookie_start)
 
             # 2. Tìm kiếm
+            t_search_start = time.time()
             iframe = self.wait.until(EC.presence_of_element_located((By.ID, "scctCargoTracking")))
             self.driver.switch_to.frame(iframe)
-            logger.info("Đã chuyển vào iframe tìm kiếm.")
+            logger.info("Đã chuyển vào iframe tìm kiếm. (Thời gian tìm iframe: %.2fs)", time.time() - t_search_start)
 
             search_input = self.wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "input.ant-input")))
             search_input.clear()
@@ -73,32 +80,41 @@ class CoscoScraper(BaseScraper):
 
             search_button = self.driver.find_element(By.CSS_SELECTOR, "button.css-1tiubaq")
             search_button.click()
-            logger.info("Đang tìm kiếm mã: %s", tracking_number)
+            logger.info("Đang tìm kiếm mã: %s. (Thời gian tìm kiếm: %.2fs)", tracking_number, time.time() - t_search_start)
 
             # 3. Chờ kết quả và trích xuất
             logger.info("Chờ trang kết quả tải...")
+            t_wait_result_start = time.time()
             self.wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR, "div#rc-tabs-0-panel-ocean")))
-            logger.info("Trang kết quả đã tải.")
+            logger.info("Trang kết quả đã tải. (Thời gian chờ kết quả: %.2fs)", time.time() - t_wait_result_start)
 
+            t_extract_start = time.time()
             normalized_data = self._extract_and_normalize_data(tracking_number)
+            logger.info("-> (Thời gian) Trích xuất dữ liệu: %.2fs", time.time() - t_extract_start)
 
             if not normalized_data:
                 return None, f"Không thể trích xuất dữ liệu đã chuẩn hóa cho '{tracking_number}'."
 
-            logger.info("Hoàn tất scrape thành công cho mã: %s", tracking_number)
+            t_total_end = time.time()
+            logger.info("Hoàn tất scrape thành công cho mã: %s (Tổng thời gian: %.2fs)", 
+                         tracking_number, t_total_end - t_total_start)
             return normalized_data, None
 
         except TimeoutException:
+            t_total_fail = time.time()
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             screenshot_path = f"output/cosco_timeout_{tracking_number}_{timestamp}.png"
             try:
                 self.driver.save_screenshot(screenshot_path)
-                logger.warning("Timeout khi scrape mã '%s'. Đã lưu ảnh chụp màn hình vào %s", tracking_number, screenshot_path)
+                logger.warning("Timeout khi scrape mã '%s'. Đã lưu ảnh chụp màn hình vào %s (Tổng thời gian: %.2fs)", 
+                             tracking_number, screenshot_path, t_total_fail - t_total_start)
             except Exception as ss_e:
                 logger.error("Không thể lưu ảnh chụp màn hình khi bị timeout cho mã '%s': %s", tracking_number, ss_e)
             return None, f"Không tìm thấy kết quả cho '{tracking_number}' (Timeout)."
         except Exception as e:
-            logger.error("Đã xảy ra lỗi không mong muốn khi scrape mã '%s': %s", tracking_number, e, exc_info=True)
+            t_total_fail = time.time()
+            logger.error("Đã xảy ra lỗi không mong muốn khi scrape mã '%s': %s (Tổng thời gian: %.2fs)", 
+                         tracking_number, e, t_total_fail - t_total_start, exc_info=True)
             return None, f"Đã xảy ra lỗi không mong muốn cho '{tracking_number}': {e}"
         finally:
             try:

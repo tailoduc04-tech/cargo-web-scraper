@@ -213,3 +213,5 @@ test_local.py
 res.json
 clean_html.py
 prompt.txt
+test_time.py
+test_*.py
