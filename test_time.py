@@ -15,7 +15,7 @@ tracking_data = {
     "MSC": "EBKG14022741",
     "MSK": "259545107",
     "ONE": "RICFHB866600",
-    # "OSL": "...", # Bỏ qua OSL
+    "OSL": "NGBEWSL20JEA250088",
     "PAN": "PCLUKAN00418449",
     "PIL": "NGPX50385100",
     "SEALEAD": "SLSNBV06890",
