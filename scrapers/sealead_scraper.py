@@ -200,8 +200,7 @@ class SealeadScraper(BaseScraper):
                     Pol=pol, Pod=pod,
                     **{k: "" for k in N8nTrackingInfo.__fields__ if k not in ['BookingNo', 'BlNumber', 'BookingStatus', 'Pol', 'Pod']}
                 )
-
-            rows = main_schedule_table.select("tbody tr")
+            rows = main_schedule_table.select("tr")
 
             if not rows:
                 logger.warning(f"[SeaLead Scraper] Không tìm thấy chặng nào trong bảng lịch trình chính cho mã: {tracking_number_input}")
@@ -215,18 +214,16 @@ class SealeadScraper(BaseScraper):
             logger.debug("-> Tìm thấy %d chặng trong bảng lịch trình chính.", len(rows))
 
             # Xử lý chặng đầu tiên
-            first_leg_cells = rows[0].find_all("td", recursive=False)
+            first_leg_cells = rows[1].find_all("td", recursive=False)
             # ETD: cột 6 (index 5) - '(Estimated) Departure Time'
             etd = self._get_text_safe_soup(first_leg_cells[5], None) if len(first_leg_cells) > 5 else ""
             atd = "" # Không có
 
             # Xử lý chặng cuối
             last_leg_cells = rows[-1].find_all("td", recursive=False)
-            # ETA: cột 8 (index 7) - '(Estimated) Arrival Time'
             eta = self._get_text_safe_soup(last_leg_cells[7], None) if len(last_leg_cells) > 7 else ""
             logger.debug("-> ETD (dự kiến): %s, ETA (dự kiến): %s", etd, eta)
 
-            # --- Xử lý transit (Logic giữ nguyên, index đã đúng) ---
             logger.info("[SeaLead Scraper] Bắt đầu xử lý thông tin transit...")
             for i in range(len(rows) - 1):
                 current_leg_cells = rows[i].find_all("td", recursive=False)
@@ -270,23 +267,20 @@ class SealeadScraper(BaseScraper):
 
 
             # === BƯỚC 4: TRÍCH XUẤT ATA TỪ CHI TIẾT CONTAINER (NẾU CÓ) ===
-            # Tìm bảng container (bảng thứ 2 có class route-table)
             container_details_table = None
-            all_route_tables = soup.select("div.single-container-main table.route-table") # Lấy các bảng trong div container
-            if len(all_route_tables) > 1: # Cần ít nhất 2 bảng: lịch trình + container
-                # Giả định bảng container là bảng thứ 2 trở đi
-                 # Tìm bảng nào có header "Container No."
-                 for table in all_route_tables[1:]: # Bỏ qua bảng lịch trình đầu tiên
+            all_route_tables = soup.select("div.single-container-main table.route-table")
+            
+            if len(all_route_tables) > 1:
+                 for table in all_route_tables[1:]:
                     header_th = table.find('th', string=lambda text: text and 'Container No.' in text)
                     if header_th:
                         container_details_table = table
                         logger.debug("[SeaLead Scraper] Tìm thấy bảng chi tiết container.")
-                        break # Dừng lại khi tìm thấy bảng đầu tiên khớp
+                        break
 
             t_container_detail_start = time.time()
             if container_details_table:
                 try:
-                    # Lấy Ata từ "Latest Move Time" (Cột [5], index 4) của container đầu tiên
                     first_container_row = container_details_table.select_one("tbody tr")
                     if first_container_row:
                         container_cells = first_container_row.find_all("td", recursive=False)
