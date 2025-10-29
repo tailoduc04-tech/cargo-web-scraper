@@ -1,184 +1,207 @@
 import logging
-import pandas as pd
+import requests
+import time
 from datetime import datetime, date
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.common.exceptions import TimeoutException, NoSuchElementException
-import traceback
-import time  # <--- Tớ đã thêm module time
 
 from .base_scraper import BaseScraper
 from schemas import N8nTrackingInfo
 
-# Bắt đầu file với logger
 logger = logging.getLogger(__name__)
 
 class PanScraper(BaseScraper):
     """
     Triển khai logic scraping cụ thể cho trang Pan Continental Shipping
-    và chuẩn hóa kết quả theo template JSON yêu cầu.
+    bằng cách gọi API trực tiếp và chuẩn hóa kết quả theo template JSON yêu cầu.
     """
+
+    def __init__(self, driver, config):
+        self.config = config
+        self.api_url = "https://www.pancon.co.kr/pan/selectWeb212AR.pcl"
+        self.session = requests.Session()
+        self.session.headers.update({
+            'Content-Type': 'application/json;charset=UTF-8',
+            'Accept': 'application/json, text/plain, */*',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36',
+            'Origin': 'https://www.pancon.co.kr',
+            'Referer': 'https://www.pancon.co.kr/pan/pageLink.do?pageId=tracking'
+        })
 
     def _format_date(self, date_str):
         """
-        Chuyển đổi chuỗi ngày từ 'YYYY/MM/DD HH:mm' (hoặc các biến thể)
-        sang 'DD/MM/YYYY'.
+        Chuyển đổi chuỗi ngày từ 'YYYYMMDDHHMM' (API format) sang 'DD/MM/YYYY'.
+        Trả về "" nếu lỗi hoặc đầu vào không hợp lệ.
         """
-        if not date_str or date_str.lower() == 'null':
-            return None
+        if not date_str or not isinstance(date_str, str) or len(date_str) < 8:
+                try:
+                    now_timestamp_str = datetime.now().strftime('%Y%m%d%H%M')
+                    if date_str[:12] == now_timestamp_str:
+                         logger.warning("Phát hiện giá trị ngày giống timestamp hiện tại: %s. Bỏ qua.", date_str)
+                         return ""
+                except Exception:
+                    pass
+                
+        if date_str and len(date_str) >= 8:
+            pass
+        else:
+                return ""
+
         try:
-            # Lấy phần ngày, bỏ qua phần giờ
-            date_part = date_str.split(" ")[0]
-            dt_obj = datetime.strptime(date_part, '%Y/%m/%d')
+            # Chỉ lấy phần YYYYMMDD
+            date_part = date_str[:8]
+            dt_obj = datetime.strptime(date_part, '%Y%m%d')
             return dt_obj.strftime('%d/%m/%Y')
         except (ValueError, IndexError):
-            logger.warning("Không thể phân tích định dạng ngày: %s. Trả về chuỗi gốc.", date_str)
-            return date_str # Trả về chuỗi gốc nếu không parse được
+            logger.warning("Không thể phân tích định dạng ngày API: %s. Trả về chuỗi rỗng.", date_str)
+            return ""
 
     def _parse_date_obj(self, date_str):
         """
-        Chuyển đổi chuỗi ngày 'YYYY/MM/DD ...' sang đối tượng date
+        Chuyển đổi chuỗi ngày 'YYYYMMDDHHMM' sang đối tượng date
         để so sánh. Trả về None nếu lỗi.
         """
-        if not date_str or date_str.lower() == 'null':
-            return None
+        if not date_str or not isinstance(date_str, str) or len(date_str) < 8:
+            if date_str and len(date_str) > 10 :
+                try:
+                    now_timestamp_str = datetime.now().strftime('%Y%m%d%H%M')
+                    if date_str[:12] == now_timestamp_str:
+                         logger.warning("Phát hiện giá trị ngày giống timestamp hiện tại khi parse object: %s. Bỏ qua.", date_str)
+                         return None
+                except Exception:
+                    pass
+            elif date_str and len(date_str) >= 8:
+                 pass
+            else:
+                return None
+
         try:
-            date_part = date_str.split(" ")[0]
-            return datetime.strptime(date_part, '%Y/%m/%d').date()
+            date_part = date_str[:8]
+            return datetime.strptime(date_part, '%Y%m%d').date()
         except (ValueError, IndexError):
-            logger.warning("Không thể phân tích chuỗi ngày sang object: %s", date_str)
+            logger.warning("Không thể phân tích chuỗi ngày API sang object: %s", date_str)
             return None
 
     def scrape(self, tracking_number):
         """
-        Phương thức scrape chính cho Pan Continental.
+        Phương thức scrape chính cho Pan Continental bằng API.
         """
-        logger.info(f"[PanCont Scraper] Bắt đầu scrape cho mã: {tracking_number}")
-        t_total_start = time.time() # Tổng thời gian bắt đầu
+        logger.info(f"[PanCont API Scraper] Bắt đầu scrape cho mã: {tracking_number}")
+        t_total_start = time.time()
+
+        payload = {
+            "I_AS_ARGU1": tracking_number,
+            "I_AS_KIND": "BL",
+            "I_AS_COUNTRY_CD": ""
+        }
 
         try:
-            t_nav_start = time.time()
-            self.driver.get(self.config['url'].format(BL_NUMBER = tracking_number))
-            self.wait = WebDriverWait(self.driver, 30)
-            logger.info("-> (Thời gian) Tải trang: %.2fs", time.time() - t_nav_start)
+            t_request_start = time.time()
+            logger.info(f"Gửi POST request đến: {self.api_url} với payload: {payload}")
+            response = self.session.post(self.api_url, json=payload, timeout=30)
+            logger.info("-> (Thời gian) Gọi API: %.2fs", time.time() - t_request_start)
+            response.raise_for_status() # Kiểm tra lỗi HTTP
 
-            # --- 2. Chờ và chuyển vào iframe chứa kết quả ---
-            logger.info("[PanCont Scraper] -> Đang chờ iframe kết quả tải...")
-            t_wait_iframe_start = time.time()
-            # Đợi cho iframe xuất hiện và chuyển vào đó
-            self.wait.until(EC.presence_of_element_located((By.TAG_NAME, "iframe")))
-            self.driver.switch_to.frame(self.driver.find_element(By.TAG_NAME, "iframe"))
-            logger.info("-> (Thời gian) Chờ và chuyển iframe: %.2fs", time.time() - t_wait_iframe_start)
-            
-            # --- 3. Chờ kết quả trong iframe và trích xuất ---
-            t_wait_result_start = time.time()
-            self.wait.until(EC.visibility_of_element_located((By.ID, "bl_no")))
-            logger.info("[PanCont Scraper] -> Trang kết quả đã tải. (Thời gian chờ: %.2fs)", time.time() - t_wait_result_start)
-            
+            t_parse_start = time.time()
+            data = response.json()
+            logger.info("-> (Thời gian) Parse JSON: %.2fs", time.time() - t_parse_start)
+
+            # Kiểm tra cấu trúc response và dữ liệu
+            if not data or "rows" not in data or not data["rows"]:
+                logger.warning(f"API không trả về dữ liệu hợp lệ hoặc 'rows' rỗng cho mã: {tracking_number}")
+                return None, f"Không tìm thấy dữ liệu cho '{tracking_number}' trên API Pan Continental."
+
+            # Chỉ lấy dữ liệu từ dòng đầu tiên (vì các dòng có vẻ giống nhau chỉ khác CNTR_NO)
+            api_data = data["rows"][0]
+
             t_extract_start = time.time()
-            normalized_data = self._extract_and_normalize_data(tracking_number)
-            logger.info("-> (Thời gian) Trích xuất dữ liệu: %.2fs", time.time() - t_extract_start)
-            
+            normalized_data = self._extract_and_normalize_data(api_data, tracking_number)
+            logger.info("-> (Thời gian) Trích xuất và chuẩn hóa dữ liệu: %.2fs", time.time() - t_extract_start)
+
             if not normalized_data:
-                # Lỗi này đã được log bên trong _extract_and_normalize_data
                 return None, f"Không thể trích xuất dữ liệu đã chuẩn hóa cho '{tracking_number}'."
 
             t_total_end = time.time()
-            logger.info("[PanCont Scraper] -> Hoàn tất scrape thành công. (Tổng thời gian: %.2fs)", t_total_end - t_total_start)
+            logger.info("[PanCont API Scraper] -> Hoàn tất scrape thành công. (Tổng thời gian: %.2fs)", t_total_end - t_total_start)
             return normalized_data, None
 
-        except TimeoutException:
+        except requests.exceptions.Timeout:
             t_total_fail = time.time()
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            screenshot_path = f"output/pancont_timeout_{tracking_number}_{timestamp}.png"
-            try:
-                self.driver.save_screenshot(screenshot_path)
-                logger.warning(f"Không tìm thấy kết quả cho '{tracking_number}' (Timeout). Đã lưu ảnh chụp màn hình: {screenshot_path} (Tổng thời gian: %.2fs)", t_total_fail - t_total_start)
-            except Exception as ss_e:
-                logger.error(f"Không thể lưu ảnh chụp màn hình khi bị timeout cho mã '{tracking_number}': {ss_e}")
-            return None, f"Không tìm thấy kết quả cho '{tracking_number}' (Timeout)."
+            logger.warning(f"Timeout khi gọi API cho '{tracking_number}'. (Tổng thời gian: %.2fs)", t_total_fail - t_total_start)
+            return None, f"Không tìm thấy kết quả cho '{tracking_number}' (Timeout API)."
+        except requests.exceptions.HTTPError as e:
+            t_total_fail = time.time()
+            logger.error(f"Lỗi HTTP {e.response.status_code} khi gọi API cho '{tracking_number}': {e.response.text} (Tổng thời gian: %.2fs)", t_total_fail - t_total_start)
+            return None, f"Lỗi HTTP {e.response.status_code} khi truy vấn '{tracking_number}'."
+        except requests.exceptions.RequestException as e:
+             t_total_fail = time.time()
+             logger.error(f"Lỗi kết nối khi gọi API cho '{tracking_number}': {e} (Tổng thời gian: %.2fs)", t_total_fail - t_total_start, exc_info=True)
+             return None, f"Lỗi kết nối khi truy vấn '{tracking_number}': {e}"
         except Exception as e:
             t_total_fail = time.time()
-            logger.error(f"Đã xảy ra lỗi không mong muốn cho '{tracking_number}': {e} (Tổng thời gian: %.2fs)", t_total_fail - t_total_start, exc_info=True)
+            logger.error(f"Đã xảy ra lỗi không mong muốn khi scrape API cho '{tracking_number}': {e} (Tổng thời gian: %.2fs)", t_total_fail - t_total_start, exc_info=True)
             return None, f"Đã xảy ra lỗi không mong muốn cho '{tracking_number}': {e}"
-        finally:
-            # Luôn chuyển về context mặc định
-            try:
-                 self.driver.switch_to.default_content()
-                 logger.info("[PanCont Scraper] -> Đã chuyển về default content.")
-            except Exception as switch_err:
-                 logger.error(f"[PanCont Scraper] -> Lỗi khi chuyển về default content: {switch_err}")
-            
-    def _get_text_by_id(self, element_id):
-        """Hàm trợ giúp lấy text từ element bằng ID, trả về None nếu không tìm thấy."""
-        try:
-            return self.driver.find_element(By.ID, element_id).text.strip()
-        except NoSuchElementException:
-            logger.warning(f"Không tìm thấy element với ID: {element_id}")
-            return None
 
-    def _extract_and_normalize_data(self, tracking_number):
+
+    def _extract_and_normalize_data(self, api_data, tracking_number_input):
         """
-        Trích xuất dữ liệu từ trang kết quả và ánh xạ vào template JSON.
+        Trích xuất dữ liệu từ JSON API và ánh xạ vào template JSON.
         """
         try:
-            bl_number = self._get_text_by_id("bl_no")
-            booking_no = self._get_text_by_id("bkg_no")
-            pol = self._get_text_by_id("pol")
-            pod = self._get_text_by_id("pod")
-            
-            # --- Thu thập thông tin các chặng ---
-            # Trang PanCont có cấu trúc phẳng (leg_1, leg_2, leg_3)
-            # Chúng ta sẽ thu thập chúng vào một danh sách
-            
+            bl_number = api_data.get("BL_NO")
+            booking_no = api_data.get("BKG_NO")
+            pol = api_data.get("POL")
+            pod = api_data.get("POD")
+
+            # --- Thu thập thông tin các chặng từ API data ---
             legs_data = [
                 {
-                    'vsl': self._get_text_by_id("vsl_1"),
-                    'pol': self._get_text_by_id("pol_1"),
-                    'etd': self._get_text_by_id("pol_etd_1"),
-                    'pod': self._get_text_by_id("pod_1"),
-                    'eta': self._get_text_by_id("pod_eta_1")
+                    'vsl': api_data.get("VSL_1"),
+                    'voy': api_data.get("VOY_1"),
+                    'pol': api_data.get("POL_1"),
+                    'etd': api_data.get("POL_ETD_1"),
+                    'pod': api_data.get("POD_1"),
+                    'eta': api_data.get("POD_ETA_1")
                 },
                 {
-                    'vsl': self._get_text_by_id("vsl_2"),
-                    'pol': self._get_text_by_id("pol_2"),
-                    'etd': self._get_text_by_id("pol_etd_2"),
-                    'pod': self._get_text_by_id("pod_2"),
-                    'eta': self._get_text_by_id("pod_eta_2")
+                    'vsl': api_data.get("VSL_2"),
+                    'voy': api_data.get("VOY_2"),
+                    'pol': api_data.get("POL_2"),
+                    'etd': api_data.get("POL_ETD_2"),
+                    'pod': api_data.get("POD_2"),
+                    'eta': api_data.get("POD_ETA_2")
                 },
                 {
-                    'vsl': self._get_text_by_id("vsl_3"),
-                    'pol': self._get_text_by_id("pol_3"),
-                    'etd': self._get_text_by_id("pol_etd_3"),
-                    'pod': self._get_text_by_id("pod_3"),
-                    'eta': self._get_text_by_id("pod_eta_3")
+                    'vsl': api_data.get("VSL_3"),
+                    'voy': api_data.get("VOY_3"),
+                    'pol': api_data.get("POL_3"),
+                    'etd': api_data.get("POL_ETD_3"),
+                    'pod': api_data.get("POD_3"),
+                    'eta': api_data.get("POD_ETA_3")
                 }
             ]
-            
-            # Lọc ra các chặng hợp lệ (có thông tin tàu và không phải 'null')
-            valid_legs = [leg for leg in legs_data if leg.get('vsl') and leg['vsl'].lower() != 'null']
-            
+
+            # Lọc ra các chặng hợp lệ (có thông tin tàu VSL_x)
+            valid_legs = [leg for leg in legs_data if leg.get('vsl')]
+
             if not valid_legs:
-                logger.warning(f"Không tìm thấy chặng tàu hợp lệ nào cho mã: {tracking_number}")
+                logger.warning(f"Không tìm thấy chặng tàu hợp lệ nào trong dữ liệu API cho mã: {tracking_number_input}")
                 # Vẫn trả về thông tin cơ bản nếu có
                 return N8nTrackingInfo(
-                    BookingNo= booking_no or tracking_number,
-                    BlNumber= bl_number or tracking_number,
-                    BookingStatus= "",
+                    BookingNo= booking_no or tracking_number_input,
+                    BlNumber= bl_number or tracking_number_input,
+                    BookingStatus= "", # API không có trường này
                     Pol= pol or "",
                     Pod= pod or "",
                     **{k: "" for k in N8nTrackingInfo.__fields__ if k not in ['BookingNo', 'BlNumber', 'BookingStatus', 'Pol', 'Pod']}
                 )
 
-            logger.info(f"Tìm thấy {len(valid_legs)} chặng tàu hợp lệ.")
+            logger.info(f"Tìm thấy {len(valid_legs)} chặng tàu hợp lệ từ API.")
 
             # --- Khởi tạo biến ---
-            etd, atd, eta, ata = None, None, None, None
+            etd, atd, eta, ata = "", "", "", ""
             transit_port_list = []
-            eta_transit, ata_transit = None, None
-            etd_transit, atd_transit = None, None
-            future_etd_transits = [] # (date_obj, port_name, date_str)
+            eta_transit, ata_transit = "", ""
+            etd_transit, atd_transit = "", ""
+            future_etd_transits = []
             today = date.today()
 
             # --- Xử lý chặng đầu (ETD/ATD) ---
@@ -200,42 +223,40 @@ class PanScraper(BaseScraper):
                 eta = eta_str # Chưa xảy ra -> là Expected
 
             # --- Xử lý các chặng trung chuyển ---
-            logger.info("Bắt đầu xử lý thông tin transit...")
+            logger.info("Bắt đầu xử lý thông tin transit từ API...")
             for i in range(len(valid_legs) - 1):
                 current_leg = valid_legs[i]
                 next_leg = valid_legs[i+1]
-                
+
                 current_pod = current_leg.get('pod')
                 next_pol = next_leg.get('pol')
-                
+
                 # Nếu cảng dỡ của chặng này = cảng xếp của chặng sau -> đây là transit
-                if current_pod and current_pod.lower() != 'null' and current_pod == next_pol:
+                if current_pod and next_pol and current_pod == next_pol:
                     transit_port = current_pod
                     logger.debug(f"Tìm thấy cảng transit '{transit_port}'")
                     if transit_port not in transit_port_list:
                         transit_port_list.append(transit_port)
-                        
+
                     # 1. Xử lý Ngày đến cảng transit (AtaTransit / EtaTransit)
-                    # Đây là ngày ETA của chặng hiện tại (current_leg)
                     temp_eta_transit_str = current_leg.get('eta')
                     temp_eta_date = self._parse_date_obj(temp_eta_transit_str)
-                    
+
                     if temp_eta_date and temp_eta_date <= today:
                         # Đã đến (Actual)
-                        if not ata_transit: # Lấy ngày *đầu tiên*
+                        if not ata_transit:
                             ata_transit = temp_eta_transit_str
                             logger.debug(f"Tìm thấy AtaTransit đầu tiên: {ata_transit}")
                     else:
                         # Sắp đến (Expected)
-                        if not ata_transit and not eta_transit: # Chỉ lấy nếu chưa có actual
+                        if not ata_transit and not eta_transit:
                             eta_transit = temp_eta_transit_str
                             logger.debug(f"Tìm thấy EtaTransit đầu tiên: {eta_transit}")
 
                     # 2. Xử lý Ngày rời cảng transit (AtdTransit / EtdTransit)
-                    # Đây là ngày ETD của chặng tiếp theo (next_leg)
                     temp_etd_transit_str = next_leg.get('etd')
                     temp_etd_date = self._parse_date_obj(temp_etd_transit_str)
-                    
+
                     if temp_etd_date and temp_etd_date <= today:
                         # Đã rời (Actual)
                         atd_transit = temp_etd_transit_str # Lấy ngày *cuối cùng*
@@ -245,7 +266,7 @@ class PanScraper(BaseScraper):
                         if temp_etd_date and temp_etd_date > today:
                             future_etd_transits.append((temp_etd_date, transit_port, temp_etd_transit_str))
                             logger.debug(f"Thêm ETD transit trong tương lai: {temp_etd_transit_str} tại {transit_port}")
-            
+
             # Chọn EtdTransit gần nhất trong tương lai
             if future_etd_transits:
                 future_etd_transits.sort() # Sắp xếp theo ngày
@@ -254,9 +275,9 @@ class PanScraper(BaseScraper):
 
             # --- Chuẩn hóa kết quả ---
             shipment_data = N8nTrackingInfo(
-                BookingNo= (booking_no or tracking_number).strip(),
-                BlNumber= (bl_number or tracking_number).strip(),
-                BookingStatus= "", # Không có trường này
+                BookingNo= (booking_no or tracking_number_input).strip(),
+                BlNumber= (bl_number or tracking_number_input).strip(),
+                BookingStatus= "", # API không có trường này
                 Pol= pol.strip() if pol else "",
                 Pod= pod.strip() if pod else "",
                 Etd= self._format_date(etd) or "",
@@ -268,11 +289,11 @@ class PanScraper(BaseScraper):
                 AtdTransit= self._format_date(atd_transit) or "",
                 EtaTransit= self._format_date(eta_transit) or "",
                 AtaTransit= self._format_date(ata_transit) or ""
-            ) 
-            
-            logger.info(f"Trích xuất dữ liệu thành công cho: {tracking_number}")
+            )
+
+            logger.info(f"Trích xuất dữ liệu thành công từ API cho: {tracking_number_input}")
             return shipment_data
 
         except Exception as e:
-            logger.error(f"[PanCont Scraper] -> Lỗi trong quá trình trích xuất: {e}", exc_info=True)
+            logger.error(f"[PanCont API Scraper] -> Lỗi trong quá trình trích xuất từ JSON: {e}", exc_info=True)
             return None
