@@ -19,7 +19,7 @@ services:
   selenium:
     image: selenium/standalone-chrome:latest
     container_name: selenium_chrome
-    shm_size: 4g
+    shm_size: 8g
     restart: unless-stopped
     networks:
       - app-network
