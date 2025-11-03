@@ -226,7 +226,7 @@ class MaerskScraper(PlaywrightScraper):
                     
                     etd_events = [
                         e for e in all_events
-                        if "vessel departure".lower() in e.get("description", "").lower() or "feeder departure".lower() in e.get("description", "").lower()
+                        if ("vessel departure".lower() in e.get("description", "").lower() or "feeder departure".lower() in e.get("description", "").lower())
                         and port.lower() in (e.get("location") or "").lower()
                         and e.get("type") == "ngay_du_kien"
                     ]
