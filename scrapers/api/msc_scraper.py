@@ -4,22 +4,24 @@ import json
 import time
 from datetime import datetime, date
 
-from .base_scraper import BaseScraper
+from ..api_scraper import ApiScraper
 from schemas import N8nTrackingInfo
 
 # Lấy logger cho module này
 logger = logging.getLogger(__name__)
 
-class MscScraper(BaseScraper):
+class MscScraper(ApiScraper):
     """
     Triển khai logic scraping cụ thể cho trang web MSC,
     bằng cách gọi API trực tiếp và chuẩn hóa kết quả theo template JSON.
     """
 
     def __init__(self, driver, config):
-        self.config = config
+        super().__init__(config=config)
+        
         self.api_url = "https://www.msc.com/api/feature/tools/TrackingInfo"
-        self.session = requests.Session()
+        
+        # Update headers specific to this scraper
         self.session.headers.update({
             'Accept': 'application/json, text/plain, */*',
             'Accept-Language': 'en-US,en;q=0.9',

@@ -6,6 +6,7 @@ from fastapi.responses import JSONResponse
 import config
 import driver_setup
 import scrapers
+from scrapers import SCRAPER_STRATEGY
 from schemas import N8nTrackingInfo, Result
 from typing import Tuple, Optional
 import logging
@@ -32,12 +33,25 @@ def run_scraping_task(scraper_name: str, tracking_number: str) -> Tuple[Optional
         print(f"Selected proxy for this session: {selected_proxy['host']}:{selected_proxy['port']}")
 
     driver = None
+    strategy = SCRAPER_STRATEGY.get(scraper_name)
+
     try:
-        start_driver_time = time.time()
-        driver = driver_setup.create_driver(selected_proxy)
         scraper_config = config.SCRAPER_CONFIGS.get(scraper_name, {})
+        
+        # --- THIS IS THE KEY LOGIC CHANGE ---
+        if strategy == "selenium":
+            start_driver_time = time.time()
+            print(f"[{scraper_name}] Strategy: Selenium. Initializing driver...")
+            driver = driver_setup.create_driver(selected_proxy)
+            print(f"Driver initialized in {time.time() - start_driver_time:.2f} seconds.")
+        elif strategy == "api":
+            print(f"[{scraper_name}] Strategy: API. Skipping driver initialization.")
+            driver = None
+        else:
+            return None, f"Scraper strategy not defined for service: {scraper_name}"
+        # --- END OF LOGIC CHANGE ---
+
         scraper_instance = scrapers.get_scraper(scraper_name, driver, scraper_config)
-        print(f"Driver initialized in {time.time() - start_driver_time:.2f} seconds.")
 
         data, error = scraper_instance.scrape(tracking_number)
 
