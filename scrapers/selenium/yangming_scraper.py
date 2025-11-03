@@ -47,7 +47,7 @@ class YangmingScraper(SeleniumScraper):
             # 1. Xử lý cookie nếu có
             try:
                 cookie_button = WebDriverWait(self.driver, 2).until(
-                    EC.element_to_be_clickable((By.CLASS_NAME, "cc-dismiss"))
+                    EC.element_to_be_clickable((By.CSS_SELECTOR, "body > div > div > div.fixed.w-full.bg-slate-200.bottom-0.opacity-100.z-50.text-black.text-justify > div > div.mt-5.w-full.flex.justify-end > button"))
                 )
                 cookie_button.click()
                 logger.info("Đã chấp nhận cookies.")
