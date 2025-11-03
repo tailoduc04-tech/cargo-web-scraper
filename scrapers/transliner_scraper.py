@@ -4,19 +4,19 @@ import json
 import time
 from datetime import datetime, date
 
-from ..api_scraper import ApiScraper
+from .base_scraper import BaseScraper
 from schemas import N8nTrackingInfo
 
 logger = logging.getLogger(__name__)
 
-class TranslinerScraper(ApiScraper):
+class TranslinerScraper(BaseScraper):
     """
     Triển khai logic scraping cụ thể cho trang Transliner bằng cách gọi API trực tiếp
     và chuẩn hóa kết quả theo template JSON.
     """
 
     def __init__(self, driver, config):
-        super().__init__(config=config)
+        self.config = config
         self.api_url_template = "https://translinergroup.track.tigris.systems/api/bookings/{booking_number}"
         self.session = requests.Session()
         # Headers cơ bản

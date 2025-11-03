@@ -6,13 +6,13 @@ from bs4 import BeautifulSoup # <--- Dùng BeautifulSoup
 import re
 import traceback
 
-from ..api_scraper import ApiScraper
+from .base_scraper import BaseScraper
 from schemas import N8nTrackingInfo
 
 # Khởi tạo logger cho module này
 logger = logging.getLogger(__name__)
 
-class SealeadScraper(ApiScraper):
+class SealeadScraper(BaseScraper):
     """
     Triển khai logic scraping cụ thể cho trang web SeaLead bằng requests và BeautifulSoup,
     chuẩn hóa kết quả theo định dạng JSON yêu cầu.

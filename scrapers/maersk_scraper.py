@@ -4,16 +4,16 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException, NoSuchElementException
-import time
+import time # <--- Thêm import time
 import traceback
 import logging
-from ..selenium_scraper import SeleniumScraper
+from .base_scraper import BaseScraper
 from schemas import N8nTrackingInfo
 
 # Lấy logger cho module này
 logger = logging.getLogger(__name__)
 
-class MaerskScraper(SeleniumScraper):
+class MaerskScraper(BaseScraper):
     """
     Triển khai logic scraping cụ thể cho trang Maersk.
     Sử dụng phương pháp truy cập URL trực tiếp
