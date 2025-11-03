@@ -8,5 +8,3 @@ jinja2
 requests
 beautifulsoup4
 lxml
-playwright
-playwright-stealth

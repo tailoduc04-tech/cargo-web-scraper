@@ -1,6 +1,5 @@
 from .api_scraper import ApiScraper
 from .selenium_scraper import SeleniumScraper
-from .playwright_scraper import PlaywrightScraper
 
 # --- Import all scrapers from sub-packages ---
 from .api.msc_scraper import MscScraper
@@ -19,13 +18,13 @@ from .api.sealead_scraper import SealeadScraper
 from .api.transliner_scraper import TranslinerScraper
 
 from .selenium.interasia_scraper import InterasiaScraper
+from .selenium.maersk_scraper import MaerskScraper
 from .selenium.tailwind_scraper import TailwindScraper
 from .selenium.yangming_scraper import YangmingScraper
 from .selenium.cosco_scraper import CoscoScraper
 from .selenium.emc_scraper import EmcScraper
 
-from .playwright.maersk_scraper import MaerskScraper
-
+# --- Central registry of all scrapers ---
 SCRAPERS = {
     "IAL": InterasiaScraper,
     "MSK": MaerskScraper,
@@ -53,13 +52,11 @@ SCRAPERS = {
 SCRAPER_STRATEGY = {
     # Selenium Scrapers
     "IAL": "selenium",
+    "MSK": "selenium",
     "Tailwind": "selenium",
     "YML": "selenium",
     "COSCO": "selenium",
     "EMC": "selenium",
-    
-    # Playwright Scrapers
-    "MSK": "playwright",
     
     # API Scrapers
     "MSC": "api",
@@ -78,26 +75,14 @@ SCRAPER_STRATEGY = {
     "TRANSLINER": "api"
 }
 
-def get_scraper(name, driver_or_page, config):
+def get_scraper(name, driver, config):
     """
     Factory function để lấy một instance của scraper dựa vào tên.
-    Cập nhật để xử lý các hàm khởi tạo khác nhau (driver, page, hoặc không gì cả).
     """
     scraper_class = SCRAPERS.get(name)
     if not scraper_class:
         raise ValueError(f"Không có scraper '{name}'.")
-
-    strategy = SCRAPER_STRATEGY.get(name)
-
-    if strategy == "selenium":
-        # SeleniumScraper yêu cầu (driver, config)
-        return scraper_class(driver=driver_or_page, config=config)
-    elif strategy == "playwright":
-        # PlaywrightScraper yêu cầu (page, config)
-        return scraper_class(page=driver_or_page, config=config)
-    elif strategy == "api":
-        # ApiScraper chỉ yêu cầu (config)
-        # Truyền driver=None để tương thích với lớp con (nếu nó ghi đè __init__)
-        return scraper_class(driver=None, config=config) 
-    else:
-        raise ValueError(f"Chiến lược scraper không xác định cho: {name}")
+    
+    # The caller (app.py) will decide whether to pass a real driver
+    # or None based on the strategy.
+    return scraper_class(driver=driver, config=config)
