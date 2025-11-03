@@ -1,5 +1,5 @@
 import logging
-import requests # <--- Dùng requests thay vì Selenium
+import requests
 import json
 import time
 from datetime import datetime, date
