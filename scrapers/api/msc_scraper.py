@@ -75,6 +75,10 @@ class MscScraper(ApiScraper):
 
             t_parse_start = time.time()
             data = response.json()
+            
+            # with open("output/msc_api_response.json", "w", encoding="utf-8") as f:
+            #     json.dump(data, f, ensure_ascii=False, indent=4)
+            
             logger.debug("-> (Thời gian) Parse JSON: %.2fs", time.time() - t_parse_start)
 
             # Kiểm tra response thành công và có dữ liệu
@@ -253,7 +257,7 @@ class MscScraper(ApiScraper):
                 # Tìm AtdTransit: Sự kiện "Full Transshipment Loaded" cuối cùng tại BẤT KỲ cảng transit nào
                 atd_transit_event = self._find_event_api(all_events, "Full Transshipment Loaded", transit_ports, find_last=True)
 
-                # Tìm EtdTransit: Tìm tất cả "Estimated Time of Departure" (không có trong API này)
+                # Tìm EtdTransit: Tìm tất cả "Estimated Time of Departure"
                 # HOẶC "Full Intended Transshipment"
                 logger.debug("Tìm kiếm EtdTransit trong tương lai (dựa trên 'Full Intended Transshipment')...")
                 transit_ports_lower = [tp.lower() for tp in transit_ports]
@@ -269,7 +273,7 @@ class MscScraper(ApiScraper):
                     etd_transit_final_str = future_etd_transits[0][2] # Lấy chuỗi ngày của event gần nhất
                     logger.info("EtdTransit gần nhất trong tương lai được chọn: %s", etd_transit_final_str)
                 else:
-                    logger.info("Không tìm thấy EtdTransit nào trong tương lai (API mới không cung cấp?).")
+                    logger.info("Không tìm thấy EtdTransit nào trong tương lai.")
             else:
                  logger.info("Không có cảng transit, bỏ qua xử lý transit.")
 
@@ -277,7 +281,7 @@ class MscScraper(ApiScraper):
             ata_transit = self._format_date(ata_transit_event.get("Date")) if ata_transit_event else ""
             eta_transit = self._format_date(eta_transit_event.get("Date")) if eta_transit_event else ""
             atd_transit = self._format_date(atd_transit_event.get("Date")) if atd_transit_event else ""
-            etd_transit = self._format_date(etd_transit_final_str) or "" # Sẽ là "" vì logic trên
+            etd_transit = self._format_date(etd_transit_final_str) or ""
 
             logger.info("Sự kiện Transit: Ata='%s', Eta='%s', Atd='%s', Etd='%s'", ata_transit, eta_transit, atd_transit, etd_transit)
 

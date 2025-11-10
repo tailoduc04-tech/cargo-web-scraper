@@ -47,7 +47,7 @@ class MaerskScraper(PlaywrightScraper):
         t_total_start = time.time() # Tổng thời gian bắt đầu
         
         # Đặt timeout mặc định cho page
-        self.page.set_default_timeout(45000) # 45 giây (hàm này sync)
+        self.page.set_default_timeout(45000) # 45 giây
 
         try:
             direct_url = f"{self.config['url']}{tracking_number}"
@@ -117,7 +117,7 @@ class MaerskScraper(PlaywrightScraper):
     async def _extract_and_normalize_data(self, tracking_number):
         """
         Trích xuất, xử lý và chuẩn hóa dữ liệu thành một dictionary duy nhất
-        Chỉ xử lý container đầu tiên. (Async)
+        Chỉ xử lý container đầu tiên.
         """
         try:
             # 1. Trích xuất thông tin tóm tắt chung
@@ -167,7 +167,7 @@ class MaerskScraper(PlaywrightScraper):
             if not all_events:
                 logger.warning("Không trích xuất được sự kiện nào từ container cho mã: %s", tracking_number)
             
-            # 3. Tìm các sự kiện quan trọng (Hàm _find_event là sync, không cần đổi)
+            # 3. Tìm các sự kiện quan trọng
             logger.info("Tìm kiếm các sự kiện quan trọng và transit...")
             departure_event_actual = self._find_event(all_events, "Vessel departure", pol, event_type="ngay_thuc_te")
             if not departure_event_actual:
@@ -182,7 +182,7 @@ class MaerskScraper(PlaywrightScraper):
             if not arrival_event_estimated:
                 arrival_event_estimated = self._find_event(all_events, "Feeder arrival", pod, event_type="ngay_du_kien")
 
-            # 4. Logic transit (Không thay đổi, là xử lý list)
+            # 4. Logic transit
             transit_ports = []
             for event in all_events:
                 location = event.get('location', '').strip() if event.get('location') else ''
@@ -284,7 +284,6 @@ class MaerskScraper(PlaywrightScraper):
     async def _extract_events_from_container(self, container_element):
         """
         Trích xuất lịch sử sự kiện từ một khối container (Transport Plan). (Async)
-        (Đã sửa lỗi logic trích xuất text)
         """
         events = []
         try:
@@ -311,10 +310,10 @@ class MaerskScraper(PlaywrightScraper):
                 try:
                     milestone_div = item.locator("div.milestone[data-test='milestone']").first
 
-                    # Lấy description (span đầu tiên) (dùng await)
+                    # Lấy description (span đầu tiên)
                     event_data['description'] = (await milestone_div.locator("span").first.text_content(timeout=1000)).strip()
                     
-                    # Lấy date (span có data-test="milestone-date") (dùng await)
+                    # Lấy date (span có data-test="milestone-date")
                     event_data['date'] = (await milestone_div.locator("span[data-test='milestone-date']").first.text_content(timeout=1000)).strip()
                     # ---------------------------------
                 
@@ -327,7 +326,7 @@ class MaerskScraper(PlaywrightScraper):
                     event_data['date'] = milestone_lines[1].strip() if len(milestone_lines) > 1 else None
 
 
-                # Loại sự kiện (Actual/Estimated) (dùng await)
+                # Loại sự kiện (Actual/Estimated)
                 item_class = await item.get_attribute("class") or ""
                 event_data['type'] = "ngay_du_kien" if "transport-plan__list__item transport-plan__list__item--future" in item_class else "ngay_thuc_te"
                 
@@ -344,7 +343,6 @@ class MaerskScraper(PlaywrightScraper):
         """
         Tìm một sự kiện cụ thể, có thể lọc theo loại (thực tế/dự kiến).
         Tìm kiếm ngược để lấy sự kiện cuối cùng (gần nhất)
-        (Hàm này không dùng Playwright/Selenium nên giữ nguyên)
         """
         if not location_keyword:
             logger.info("Bỏ qua _find_event vì location_keyword rỗng.")

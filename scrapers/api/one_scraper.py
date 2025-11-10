@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 class OneScraper(ApiScraper):
     """
     Triển khai logic scraping cụ thể cho trang Ocean Network Express (ONE)
-    bằng cách gọi API trực tiếp và chuẩn hóa kết quả theo định dạng JSON yêu cầu.
+    bằng cách gọi API trực tiếp và chuẩn hóa kết quả theo định dạng yêu cầu.
     """
 
     def __init__(self, driver, config):
@@ -317,7 +317,7 @@ class OneScraper(ApiScraper):
             return shipment_data
 
         except Exception as e:
-            # Log lỗi cụ thể khi trích xuất
+            # Log lỗi cụ thể khi trích \\\\\\//////xuất
             logger.error("[ONE API Scraper] Lỗi trong quá trình trích xuất chi tiết từ API cho mã '%s': %s", booking_no_input, e, exc_info=True)
             logger.info("[ONE API Scraper] --- Hoàn tất _extract_and_normalize_data_api (lỗi) --- (Tổng thời gian trích xuất: %.2fs)", time.time() - t_extract_detail_start)
             return None

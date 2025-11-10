@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 class PanScraper(ApiScraper):
     """
     Triển khai logic scraping cụ thể cho trang Pan Continental Shipping
-    bằng cách gọi API trực tiếp và chuẩn hóa kết quả theo template JSON yêu cầu.
+    bằng cách gọi API trực tiếp và chuẩn hóa kết quả theo yêu cầu.
     """
 
     def __init__(self, driver, config):
@@ -109,7 +109,7 @@ class PanScraper(ApiScraper):
                 logger.warning(f"API không trả về dữ liệu hợp lệ hoặc 'rows' rỗng cho mã: {tracking_number}")
                 return None, f"Không tìm thấy dữ liệu cho '{tracking_number}' trên API Pan Continental."
 
-            # Chỉ lấy dữ liệu từ dòng đầu tiên (vì các dòng có vẻ giống nhau chỉ khác CNTR_NO)
+            # Chỉ lấy dữ liệu từ dòng đầu tiên
             api_data = data["rows"][0]
 
             t_extract_start = time.time()
@@ -259,7 +259,7 @@ class PanScraper(ApiScraper):
 
                     if temp_etd_date and temp_etd_date <= today:
                         # Đã rời (Actual)
-                        atd_transit = temp_etd_transit_str # Lấy ngày *cuối cùng*
+                        atd_transit = temp_etd_transit_str # Lấy ngày cuối cùng
                         logger.debug(f"Cập nhật AtdTransit cuối cùng: {atd_transit}")
                     else:
                         # Sắp rời (Expected)

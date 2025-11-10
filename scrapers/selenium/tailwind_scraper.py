@@ -16,8 +16,7 @@ logger = logging.getLogger(__name__)
 class TailwindScraper(SeleniumScraper):
     """
     Triển khai logic scraping cụ thể cho trang web Tailwind Shipping.
-    Sử dụng Selenium để trích xuất dữ liệu và chuẩn hóa theo
-    schema N8nTrackingInfo.
+    Sử dụng Selenium để trích xuất dữ liệu và chuẩn hóa
     """
 
     def _format_date(self, date_str):

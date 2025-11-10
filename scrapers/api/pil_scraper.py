@@ -2,8 +2,7 @@ import logging
 import requests
 import time
 from datetime import datetime, date
-from bs4 import BeautifulSoup # Cần BeautifulSoup
-import re
+from bs4 import BeautifulSoup
 
 from ..api_scraper import ApiScraper
 from schemas import N8nTrackingInfo
@@ -19,7 +18,6 @@ class PilScraper(ApiScraper):
     def __init__(self, driver, config):
         super().__init__(config=config)
         self.get_n_url = "https://www.pilship.com/wp-content/themes/hello-theme-child-master/pil-api/common/get-n.php"
-        # API tracking dùng cho cả lấy summary và lấy detail (thêm cntr_no)
         self.track_url = "https://www.pilship.com/wp-content/themes/hello-theme-child-master/pil-api/trackntrace-containertnt.php"
         self.track_container_url = "https://www.pilship.com/wp-content/themes/hello-theme-child-master/pil-api/trackntrace-containertnt-trace.php?"
         self.session = requests.Session()

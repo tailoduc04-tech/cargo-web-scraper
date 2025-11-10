@@ -1,10 +1,8 @@
 import logging
-import requests # <--- Dùng requests
+import requests
 import time
 from datetime import datetime, date
-from bs4 import BeautifulSoup # <--- Dùng BeautifulSoup
-import re
-import traceback
+from bs4 import BeautifulSoup
 
 from ..api_scraper import ApiScraper
 from schemas import N8nTrackingInfo
@@ -19,14 +17,14 @@ class SealeadScraper(ApiScraper):
     """
     def __init__(self, driver, config): # driver không còn được sử dụng
         self.config = config
-        # Tạo session để quản lý headers và cookies (nếu cần)
+        # Tạo session để quản lý headers và cookies
         self.session = requests.Session()
         # Headers cơ bản để giả lập trình duyệt
         self.session.headers.update({
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36',
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
             'Accept-Language': 'en-US,en;q=0.9',
-            'Referer': 'https://www.sea-lead.com/track-shipment/', # Referer quan trọng
+            'Referer': 'https://www.sea-lead.com/track-shipment/',
         })
 
     def _format_date(self, date_str):
@@ -51,7 +49,6 @@ class SealeadScraper(ApiScraper):
                 logger.warning("[SeaLead Scraper] Không thể phân tích định dạng ngày: %s", date_str)
                 return "" # Trả về chuỗi rỗng
 
-    # --- Hàm helper lấy text từ soup ---
     def _get_text_safe_soup(self, soup_element, selector, attribute=None):
         """
         Helper lấy text hoặc attribute từ phần tử BeautifulSoup một cách an toàn.
@@ -126,8 +123,6 @@ class SealeadScraper(ApiScraper):
             logger.info(f"[SeaLead Scraper] -> Hoàn tất scrape thành công cho mã: {tracking_number}. (Tổng thời gian: %.2fs)",
                          t_total_end - t_total_start)
             return normalized_data, None
-
-        # --- Xử lý lỗi (giống phiên bản trước) ---
         except requests.exceptions.Timeout:
              t_total_fail = time.time()
              logger.warning("[SeaLead Scraper] Timeout khi scrape mã '%s' (Tổng thời gian: %.2fs)",
@@ -149,7 +144,6 @@ class SealeadScraper(ApiScraper):
                          tracking_number, e, t_total_fail - t_total_start, exc_info=True)
             return None, f"Đã xảy ra lỗi không mong muốn cho '{tracking_number}': {e}"
 
-    # --- Hàm _extract_and_normalize_data_soup ---
     def _extract_and_normalize_data_soup(self, soup, tracking_number_input):
         """
         Trích xuất dữ liệu từ trang kết quả đã parse bằng BeautifulSoup và ánh xạ vào template JSON.
@@ -160,20 +154,18 @@ class SealeadScraper(ApiScraper):
             t_extract_detail_start = time.time()
             today = date.today()
 
-            # === BƯỚC 1: KHỞI TẠO BIẾN ===
             etd, atd, eta, ata = "", "", "", ""
             transit_port_list = []
             etd_transit_final, atd_transit, eta_transit, ata_transit = "", "", "", ""
             future_etd_transits = []
 
-            # === BƯỚC 2: TRÍCH XUẤT THÔNG TIN CƠ BẢN ===
             t_basic_info_start = time.time()
             bl_header = soup.find('h4', string=lambda text: text and 'Bill of lading number' in text)
             bl_number = bl_header.get_text(strip=True).replace("Bill of lading number:", "").strip() if bl_header else tracking_number_input
             booking_no = bl_number
             booking_status = ""
 
-            # Sử dụng HTML snippet mới để tìm POL, POD trong table.route-table-bill
+            # Sử dụng HTML snippet để tìm POL, POD trong table.route-table-bill
             info_table = soup.select_one("div#custom-table-track table.route-table-bill")
             pol, pod = "", ""
             if info_table:
@@ -187,9 +179,7 @@ class SealeadScraper(ApiScraper):
             logger.info(f"[SeaLead Scraper] -> BL: {bl_number}, POL: {pol}, POD: {pod}")
             logger.debug("-> (Thời gian) Trích xuất thông tin cơ bản: %.2fs", time.time() - t_basic_info_start)
 
-            # === BƯỚC 3: TRÍCH XUẤT LỊCH TRÌNH VÀ THÔNG TIN TRUNG CHUYỂN ===
             t_schedule_start = time.time()
-            # Bảng lịch trình chính nằm trong div.single-container-main div#custom-table-track-full table.route-table
             main_schedule_table = soup.select_one("div.single-container-main div#custom-table-track-full table.route-table")
 
             if not main_schedule_table:
@@ -265,8 +255,6 @@ class SealeadScraper(ApiScraper):
                  logger.info("[SeaLead Scraper] Không tìm thấy ETD transit nào trong tương lai.")
             logger.debug("-> (Thời gian) Xử lý lịch trình và transit: %.2fs", time.time() - t_schedule_start)
 
-
-            # === BƯỚC 4: TRÍCH XUẤT ATA TỪ CHI TIẾT CONTAINER (NẾU CÓ) ===
             container_details_table = None
             all_route_tables = soup.select("div.single-container-main table.route-table")
             
@@ -294,7 +282,6 @@ class SealeadScraper(ApiScraper):
                 logger.info("[SeaLead Scraper] Không có bảng chi tiết container, không thể lấy Ata.")
             logger.debug("-> (Thời gian) Trích xuất chi tiết container (Ata): %.2fs", time.time() - t_container_detail_start)
 
-            # === BƯỚC 5: XÂY DỰNG ĐỐI TƯỢNG JSON ===
             t_normalize_start = time.time()
             shipment_data = N8nTrackingInfo(
                 BookingNo= booking_no,

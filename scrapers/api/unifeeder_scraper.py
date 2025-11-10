@@ -16,18 +16,16 @@ class UnifeederScraper(ApiScraper):
     và chuẩn hóa kết quả theo định dạng JSON yêu cầu.
     """
 
-    def __init__(self, driver, config): # driver không còn được dùng
+    def __init__(self, driver, config):
         self.config = config
-        self.api_url = "https://api-fr.cargoes.com/track/avana" # URL API mới
+        self.api_url = "https://api-fr.cargoes.com/track/avana"
         self.session = requests.Session()
-        # Headers cơ bản dựa trên script test
         self.session.headers.update({
             'Accept': 'application/json, text/plain, */*',
             'Accept-Language': 'en-US,en;q=0.9',
             'Origin': 'https://www.unifeeder.cargoes.com',
             'Referer': 'https://www.unifeeder.cargoes.com/',
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36',
-            # Content-Type không cần cho GET request với params
         })
 
     def _format_date(self, date_str):
@@ -57,7 +55,7 @@ class UnifeederScraper(ApiScraper):
 
         params = {
             "trackingId": tracking_number,
-            "tenant": "AVANA-LINER" # Hardcode tenant này dựa trên request mẫu
+            "tenant": "AVANA-LINER"
         }
 
         try:
@@ -65,7 +63,7 @@ class UnifeederScraper(ApiScraper):
             t_request_start = time.time()
             response = self.session.get(self.api_url, params=params, timeout=30)
             logger.info("-> (Thời gian) Gọi API: %.2fs", time.time() - t_request_start)
-            response.raise_for_status() # Kiểm tra lỗi HTTP (4xx, 5xx)
+            response.raise_for_status()
 
             t_parse_start = time.time()
             data = response.json()
@@ -75,9 +73,6 @@ class UnifeederScraper(ApiScraper):
             if not data or not data.get("bookingRelatedDetails") or not data.get("bookingTrackingEvents"):
                  error_msg = "API không trả về dữ liệu thành công hoặc thiếu thông tin booking/events."
                  logger.warning("[Unifeeder API Scraper] %s Response: %s", error_msg, data)
-                 # Kiểm tra thêm nếu có lỗi cụ thể từ API (mặc dù response mẫu không có)
-                 # api_error = data.get("error") or data.get("message")
-                 # if api_error: error_msg = api_error
                  return None, f"Không tìm thấy dữ liệu cho '{tracking_number}' trên API Unifeeder."
 
             # Trích xuất và chuẩn hóa dữ liệu từ response JSON
@@ -94,7 +89,6 @@ class UnifeederScraper(ApiScraper):
                          tracking_number, t_total_end - t_total_start)
             return normalized_data, None
 
-        # --- Xử lý lỗi (tương tự các scraper API khác) ---
         except requests.exceptions.Timeout:
             t_total_fail = time.time()
             logger.warning("[Unifeeder API Scraper] Timeout khi gọi API cho mã '%s' (Tổng thời gian: %.2fs)",
@@ -130,8 +124,6 @@ class UnifeederScraper(ApiScraper):
         try:
             booking_details = api_data.get("bookingRelatedDetails", {})
             events = api_data.get("bookingTrackingEvents", [])
-
-            # === BƯỚC 1: LẤY THÔNG TIN CƠ BẢN ===
             logger.debug("Bắt đầu trích xuất thông tin cơ bản...")
             # API trả về mã cảng, không có tên đầy đủ, tạm dùng mã cảng
             pol = booking_details.get("originLocationName", "")
@@ -145,7 +137,6 @@ class UnifeederScraper(ApiScraper):
             logger.info(f"Thông tin cơ bản: POL='{pol}', POD='{pod}', BL='{bl_number}', Booking='{booking_no}', Status='{booking_status}'")
             logger.debug("-> (Thời gian) Trích xuất thông tin cơ bản: %.2fs", time.time() - t_extract_detail_start) # Log tạm thời gian
 
-            # === BƯỚC 2: XỬ LÝ SỰ KIỆN ===
             t_event_start = time.time()
             etd, atd, eta, ata = "", "", "", ""
             etd_transit_final, atd_transit, transit_port_list, eta_transit, ata_transit = "", "", [], "", ""
@@ -236,7 +227,6 @@ class UnifeederScraper(ApiScraper):
 
             logger.debug("-> (Thời gian) Xử lý sự kiện và transit: %.2fs", time.time() - t_event_start)
 
-            # === BƯỚC 3: TẠO ĐỐI TƯỢNG JSON CHUẨN HÓA ===
             t_normalize_start = time.time()
             shipment_data = N8nTrackingInfo(
                 BookingNo= booking_no or "",

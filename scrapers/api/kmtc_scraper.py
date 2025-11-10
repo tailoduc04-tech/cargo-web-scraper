@@ -69,6 +69,7 @@ class KmtcScraper(ApiScraper):
             t_step1_start = time.time()
             payload_step1 = {"dtKnd": "BL", "blNo": tracking_number}
             response_step1 = self.session.post(self.step1_url, json=payload_step1, timeout=30)
+            
             response_step1.raise_for_status()
             data_step1 = response_step1.json()
             logger.info("-> (Thời gian) Gọi API Bước 1: %.2fs", time.time() - t_step1_start)
@@ -104,6 +105,11 @@ class KmtcScraper(ApiScraper):
                 response_step2 = self.session.get(step2_url, timeout=30)
                 response_step2.raise_for_status()
                 data_step2 = response_step2.json()
+                
+                # with open("output/kmtc_step2_response.json", "w", encoding="utf-8") as f:
+                #     import json
+                #     json.dump(data_step2, f, ensure_ascii=False, indent=4)
+                
                 logger.info("-> (Thời gian) Gọi API Bước 2: %.2fs", time.time() - t_step2_start)
 
                 logger.info("[KMTC API Scraper] Bước 2: Request thành công.")
@@ -151,7 +157,7 @@ class KmtcScraper(ApiScraper):
 
             pol = data_step2.get("polPortEnm", "").split(',')[0].strip() # Lấy tên cảng chính
             pod = data_step2.get("podPortEnm", "").split(',')[0].strip()
-            etd_api = data_step2.get("etd") # YYYYMMDDHHMM
+            etd_api = data_step2.get("etd")
             eta_api = data_step2.get("eta")
 
             # Booking Status: Có thể dùng bkgStsCd hoặc issueStatus từ data_step1

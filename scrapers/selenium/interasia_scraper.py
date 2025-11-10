@@ -207,13 +207,13 @@ class InterasiaScraper(SeleniumScraper):
             eta_transit = ""
             etd_transit = ""
 
-            # 5. Xây dựng đối tượng JSON chuẩn hóa (đủ 14 trường)
+            # 5. Xây dựng đối tượng JSON chuẩn hóa
             t_normalize_start = time.time()
             logger.debug("Xây dựng đối tượng N8nTrackingInfo...")
             shipment_data = N8nTrackingInfo(
                 BookingNo= tracking_number,
                 BlNumber= tracking_number,
-                BookingStatus= "", # Không tìm thấy trường này trong HTML
+                BookingStatus= "",
                 Pol= pol or "",
                 Pod= pod or "",
                 Etd= self._format_date(etd) or "",
@@ -240,7 +240,7 @@ class InterasiaScraper(SeleniumScraper):
         """Trích xuất tất cả sự kiện từ một khối container được cung cấp."""
         events = []
         try:
-            # Lấy số container để logging (hữu ích khi debug)
+            # Lấy số container để logging
             try:
                 container_no = container_block.find_element(By.CSS_SELECTOR, "p.title").text.replace("Container No |", "").strip()
                 logger.debug(f"-> Trích xuất sự kiện cho container: {container_no}")

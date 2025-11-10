@@ -1,10 +1,9 @@
 import logging
 import requests
 import time
-from datetime import datetime, date
+from datetime import datetime
 from bs4 import BeautifulSoup
 import re
-import traceback
 
 from ..api_scraper import ApiScraper
 from schemas import N8nTrackingInfo
@@ -40,7 +39,7 @@ class HeungALineScraper(ApiScraper):
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36',
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
             'Accept-Language': 'en-US,en;q=0.9',
-            'Referer': 'https://ebiz.heungaline.com/', # Referer cơ bản
+            'Referer': 'https://ebiz.heungaline.com/',
         })
 
     def _format_date(self, date_str):
@@ -126,6 +125,11 @@ class HeungALineScraper(ApiScraper):
             # Gửi request để lấy HTML
             response = self.session.get(direct_url, timeout=30)
             response.raise_for_status() # Kiểm tra lỗi HTTP
+            
+            # with open("output/heunga_response.html", 'w', encoding='utf-8') as f:
+            #     print("Saving raw HTML response to output/heunga_response.html")
+            #     f.write(response.text)
+            
             logger.info("-> (Thời gian) Tải HTML: %.2fs", time.time() - t_req_start)
 
             # Parse HTML bằng BeautifulSoup

@@ -13,15 +13,13 @@ logger = logging.getLogger(__name__)
 class GoldstarScraper(ApiScraper):
     """
     Triển khai logic scraping cụ thể cho trang Gold Star Line bằng cách gọi API trực tiếp
-    và chuẩn hóa kết quả theo template JSON yêu cầu.
+    và chuẩn hóa kết quả theo yêu cầu.
     """
 
     def __init__(self, driver, config): # driver không còn được sử dụng
         self.config = config
-        # API endpoint lấy từ file test_goldstar.py
         self.api_url = "https://www.goldstarline.com/api/cms"
         self.session = requests.Session()
-        # Headers cơ bản dựa trên file test_goldstar.py
         self.session.headers.update({
             'Accept': '*/*',
             'Accept-Language': 'en-US,en;q=0.9',
@@ -46,7 +44,6 @@ class GoldstarScraper(ApiScraper):
         if not date_str or not isinstance(date_str, str):
             return ""
         try:
-            # Lấy phần ngày tháng năm, bỏ qua phần giờ và mili giây
             date_part = date_str.split('T')[0]
             if not date_part:
                 return ""
@@ -64,11 +61,10 @@ class GoldstarScraper(ApiScraper):
         logger.info("[Goldstar API Scraper] Bắt đầu scrape cho mã: %s", tracking_number)
         t_total_start = time.time()
 
-        # Payload dựa trên file test_goldstar.py
         payload = {
             "action": "get_track_shipment_val",
-            "country_code": "HK", # Mã này có thể cần thay đổi hoặc không quan trọng
-            "containerid": tracking_number # API dùng key là 'containerid' cho cả B/L và container
+            "country_code": "HK",
+            "containerid": tracking_number 
         }
 
         try:
@@ -80,6 +76,9 @@ class GoldstarScraper(ApiScraper):
 
             t_parse_start = time.time()
             data = response.json()
+            # with open("output/goldstar_response.json", 'w', encoding='utf-8') as f:
+            #     print("Saving raw API response to output/goldstar_response.json")
+            #     json.dump(data, f, indent=2, ensure_ascii=False, default=str)
             logger.info("-> (Thời gian) Parse JSON: %.2fs", time.time() - t_parse_start)
 
             # Kiểm tra response thành công và có dữ liệu cần thiết
@@ -136,7 +135,6 @@ class GoldstarScraper(ApiScraper):
     def _extract_and_normalize_data_api(self, api_data, tracking_number_input):
         """
         Trích xuất và chuẩn hóa dữ liệu từ dictionary JSON trả về của API Goldstar.
-        Áp dụng logic transit tương tự COSCO.
         """
         logger.info("[Goldstar API Scraper] --- Bắt đầu _extract_and_normalize_data_api ---")
         t_extract_detail_start = time.time()

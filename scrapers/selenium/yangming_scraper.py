@@ -14,8 +14,7 @@ logger = logging.getLogger(__name__)
 
 class YangmingScraper(SeleniumScraper):
     """
-    Triển khai logic scraping cụ thể cho trang Yang Ming (YM) và chuẩn hóa
-    kết quả theo template JSON (N8nTrackingInfo).
+    Triển khai logic scraping cụ thể cho trang Yang Ming (YM) và chuẩn hóa.
     """
 
     def _format_date(self, date_str):

@@ -1,10 +1,9 @@
 import logging
 import requests
 import time
-from datetime import datetime, date
+from datetime import datetime
 from bs4 import BeautifulSoup
 import re
-import traceback
 
 from ..api_scraper import ApiScraper
 from schemas import N8nTrackingInfo
@@ -40,7 +39,7 @@ class SinokorScraper(ApiScraper):
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36',
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
             'Accept-Language': 'en-US,en;q=0.9',
-            'Referer': 'https://ebiz.sinokor.co.kr/', # Thêm Referer cơ bản
+            'Referer': 'https://ebiz.sinokor.co.kr/',
         })
 
     def _format_date(self, date_str):
@@ -95,8 +94,8 @@ class SinokorScraper(ApiScraper):
             direct_url = f"{self.config['url']}{tracking_number}"
             t_req_start = time.time()
             # Gửi request để lấy HTML
-            response = self.session.get(direct_url, timeout=30) # Timeout 30 giây
-            response.raise_for_status() # Kiểm tra lỗi HTTP
+            response = self.session.get(direct_url, timeout=30)
+            response.raise_for_status()
             logger.info("-> (Thời gian) Tải HTML: %.2fs", time.time() - t_req_start)
 
             # Parse HTML bằng BeautifulSoup
@@ -135,7 +134,6 @@ class SinokorScraper(ApiScraper):
             t_total_fail = time.time()
             logger.warning("[Sinokor Scraper] Timeout khi scrape mã '%s' (Tổng thời gian: %.2fs)",
                          tracking_number, t_total_fail - t_total_start)
-            # Không thể lưu screenshot vì không dùng Selenium
             return None, f"Không tìm thấy kết quả cho '{tracking_number}'. Request bị timeout."
         except requests.exceptions.HTTPError as e:
              t_total_fail = time.time()
@@ -153,7 +151,6 @@ class SinokorScraper(ApiScraper):
                          tracking_number, e, t_total_fail - t_total_start, exc_info=True)
             return None, f"Đã xảy ra lỗi không mong muốn cho '{tracking_number}': {e}"
 
-    # --- Hàm _get_text_safe_soup (Giữ nguyên) ---
     def _get_text_safe_soup(self, soup_element, selector, attribute=None):
         """
         Helper lấy text hoặc attribute từ phần tử BeautifulSoup một cách an toàn.
@@ -243,7 +240,7 @@ class SinokorScraper(ApiScraper):
             ata_transit = ""
             atd_transit = ""
             etd_transit_final = ""
-            future_etd_transits = [] # (datetime, date_str)
+            future_etd_transits = []
 
             atd_event = self._find_event_soup(history_events, "Departure", pol_terminal or pol)
             pod_arrival_event = self._find_event_soup(history_events, "Arrival", pod_terminal or pod)
@@ -341,7 +338,6 @@ class SinokorScraper(ApiScraper):
             logger.info("[Sinokor Scraper] --- Hoàn tất trích xuất chi tiết (lỗi). (Tổng thời gian trích xuất: %.2fs) ---", time.time() - t_extract_detail_start)
             return None
 
-    # --- Hàm _extract_history_events_soup (Giữ nguyên) ---
     def _extract_history_events_soup(self, tbody_soup):
         """
         Trích xuất tất cả các sự kiện từ tbody của bảng Cargo Tracking (đã parse bằng BeautifulSoup).
@@ -388,7 +384,6 @@ class SinokorScraper(ApiScraper):
         logger.info("[Sinokor Scraper] --> Trích xuất được %d sự kiện từ lịch sử.", len(events))
         return events
 
-    # --- Hàm _find_event_soup (Giữ nguyên) ---
     def _find_event_soup(self, events, description_keyword, location_keyword):
         """
         Tìm sự kiện cụ thể trong list events (đã trích xuất từ soup).
@@ -412,7 +407,6 @@ class SinokorScraper(ApiScraper):
         logger.debug("---> Không khớp.")
         return None
 
-    # --- Hàm _extract_code (Giữ nguyên, cần cho _find_event_soup) ---
     @staticmethod
     def _extract_code(location_text):
         """

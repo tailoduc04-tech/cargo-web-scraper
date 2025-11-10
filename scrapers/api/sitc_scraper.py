@@ -24,7 +24,7 @@ class SitcScraper(ApiScraper):
             'Accept-Language': 'en-US,en;q=0.9',
             'Connection': 'keep-alive',
             'Host': 'ebusiness.sitcline.com',
-            'Referer': 'https://ebusiness.sitcline.com/', # Referer cần thiết
+            'Referer': 'https://ebusiness.sitcline.com/',
             'Sec-Ch-Ua': '"Google Chrome";v="141", "Not?A_Brand";v="8", "Chromium";v="141"',
             'Sec-Ch-Ua-Mobile': '?0',
             'Sec-Ch-Ua-Platform': '"Windows"',
@@ -62,14 +62,14 @@ class SitcScraper(ApiScraper):
         params = {'blNo': tracking_number}
 
         try:
-            # Bước 1: Khởi tạo session để lấy cookies
+            
             logger.info(f"[SITC API Scraper] Gửi GET request đến {self.base_url} để khởi tạo session...")
             t_init_start = time.time()
             initial_response = self.session.get(self.base_url, timeout=30)
             initial_response.raise_for_status()
             logger.info("-> (Thời gian) Khởi tạo session: %.2fs", time.time() - t_init_start)
 
-            # Bước 2: Gọi API tracking với session đã có cookie
+            
             logger.info(f"[SITC API Scraper] Gửi GET request đến API: {self.api_url}")
             t_api_start = time.time()
             response = self.session.get(self.api_url, params=params, timeout=30)
@@ -89,7 +89,6 @@ class SitcScraper(ApiScraper):
             logger.info("-> (Thời gian) Trích xuất và chuẩn hóa: %.2fs", time.time() - t_extract_start)
 
             if not normalized_data:
-                # Lỗi đã được log bên trong _extract_and_normalize_data_api
                 return None, f"Không thể chuẩn hóa dữ liệu từ API cho '{tracking_number}'."
 
             t_total_end = time.time()
@@ -120,12 +119,10 @@ class SitcScraper(ApiScraper):
     def _extract_and_normalize_data_api(self, api_data, tracking_number_input):
         """
         Trích xuất và chuẩn hóa dữ liệu từ dictionary JSON trả về của API SITC.
-        Áp dụng logic transit tương tự COSCO/SITC cũ.
         """
         logger.info("[SITC API Scraper] --- Bắt đầu _extract_and_normalize_data_api ---")
         t_extract_detail_start = time.time()
         try:
-            # === BƯỚC 1: LẤY THÔNG TIN TÓM TẮT ===
             t_basic_info_start = time.time()
 
             list1 = api_data.get("list1", [])
@@ -145,7 +142,6 @@ class SitcScraper(ApiScraper):
             logger.debug("-> (Thời gian) Trích xuất thông tin cơ bản: %.2fs", time.time() - t_basic_info_start)
 
 
-            # === BƯỚC 2: LẤY THÔNG TIN TỪ "list2" (SAILING SCHEDULE) ===
             t_schedule_start = time.time()
             schedule_list = api_data.get("list2", [])
 
@@ -229,8 +225,6 @@ class SitcScraper(ApiScraper):
                  logger.info("[SITC API Scraper] Không tìm thấy ETD transit nào trong tương lai.")
             logger.debug("-> (Thời gian) Xử lý sailing schedule và transit: %.2fs", time.time() - t_schedule_start)
 
-
-            # === BƯỚC 3: TẠO ĐỐI TƯỢNG JSON CHUẨN HÓA ===
             t_normalize_start = time.time()
             # Đảm bảo mọi giá trị None hoặc lỗi đều trở thành ""
             shipment_data = N8nTrackingInfo(

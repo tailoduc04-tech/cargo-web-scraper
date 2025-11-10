@@ -125,7 +125,7 @@ class CoscoScraper(SeleniumScraper):
 
     def _extract_schedule_date(self, cell, date_type):
         """
-        Helper mới: Trích xuất ngày từ cấu trúc table cell của trang kết quả mới.
+        Helper mới: Trích xuất ngày từ cấu trúc table cell của trang kết quả.
         """
         try:
             xpath_selector = f".//span[contains(text(), '{date_type}')]/following-sibling::span"
@@ -138,7 +138,7 @@ class CoscoScraper(SeleniumScraper):
 
     def _extract_and_normalize_data(self, tracking_number):
         """
-        Trích xuất và chuẩn hóa dữ liệu từ trang kết quả của COSCO (Layout mới).
+        Trích xuất và chuẩn hóa dữ liệu từ trang kết quả của COSCO.
         Đã cập nhật logic tìm EtdTransit gần nhất > hôm nay.
         """
         try:
