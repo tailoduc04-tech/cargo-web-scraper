@@ -8,12 +8,12 @@ from selenium.common.exceptions import TimeoutException, NoSuchElementException
 import re
 import time
 
-from .base_scraper import BaseScraper
+from ..selenium_scraper import SeleniumScraper
 from schemas import N8nTrackingInfo
 
 logger = logging.getLogger(__name__)
 
-class CoscoScraper(BaseScraper):
+class CoscoScraper(SeleniumScraper):
     """
     Triển khai logic scraping cụ thể cho trang COSCO Shipping Lines
     và chuẩn hóa kết quả theo template JSON.

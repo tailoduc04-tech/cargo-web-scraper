@@ -4,20 +4,20 @@ import json
 import time
 from datetime import datetime, date
 
-from .base_scraper import BaseScraper
+from ..api_scraper import ApiScraper
 from schemas import N8nTrackingInfo
 
 # Lấy logger cho module
 logger = logging.getLogger(__name__)
 
-class OneScraper(BaseScraper):
+class OneScraper(ApiScraper):
     """
     Triển khai logic scraping cụ thể cho trang Ocean Network Express (ONE)
     bằng cách gọi API trực tiếp và chuẩn hóa kết quả theo định dạng yêu cầu.
     """
 
     def __init__(self, driver, config):
-        self.config = config
+        super().__init__(config=config)
         self.search_url = "https://ecomm.one-line.com/api/v1/edh/containers/track-and-trace/search"
         self.events_url = "https://ecomm.one-line.com/api/v1/edh/containers/track-and-trace/cop-events"
         self.session = requests.Session()

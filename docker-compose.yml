@@ -15,7 +15,7 @@ services:
       - selenium
     networks:
       - app-network
-    deploy: # <-- Thêm key deploy
+    deploy:
       resources:
         limits:
           cpus: '1.0'

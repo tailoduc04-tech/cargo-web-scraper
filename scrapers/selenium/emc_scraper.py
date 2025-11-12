@@ -5,15 +5,15 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException, NoSuchElementException
-import time  # <--- Tớ đã thêm module time
+import time
 
-from .base_scraper import BaseScraper
+from ..selenium_scraper import SeleniumScraper
 from schemas import N8nTrackingInfo
 
 # Lấy logger cho module này
 logger = logging.getLogger(__name__)
 
-class EmcScraper(BaseScraper):
+class EmcScraper(SeleniumScraper):
     """
     Triển khai logic scraping cụ thể cho trang Evergreen (EMC)
     và chuẩn hóa kết quả theo template JSON yêu cầu.
@@ -123,7 +123,7 @@ class EmcScraper(BaseScraper):
         """
         events = []
         try:
-            # Chờ bảng trong popup xuất hiện (dựa trên ảnh, bảng có vẻ là `ec-table`)
+            # Chờ bảng trong popup xuất hiện
             event_table = self.wait.until(EC.visibility_of_element_located((By.XPATH, "//td[contains(text(), 'Container Moves')]/ancestor::table")))
             # Tìm tất cả các hàng trong tbody (bỏ qua hàng header)
             rows = event_table.find_elements(By.XPATH, ".//tr[td]")
@@ -191,12 +191,10 @@ class EmcScraper(BaseScraper):
             all_events = []
             container_links = self.driver.find_elements(By.XPATH, "//a[contains(@href, 'frmCntrMoveDetail')]")
             
-            # --- THAY ĐỔI THEO YÊU CẦU ---
             logger.info(f"Tìm thấy {len(container_links)} container. Sẽ chỉ xử lý 1 container đầu tiên theo yêu cầu.")
             
             # Chỉ lặp qua 1 link đầu tiên
-            for link in container_links[:1]: 
-            # --- KẾT THÚC THAY ĐỔI ---
+            for link in container_links[:1]:
                 try:
                     container_no = link.text.strip()
                     logger.info(f"Đang xử lý container: {container_no}")
