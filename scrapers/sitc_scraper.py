@@ -3,19 +3,19 @@ import requests
 import time
 from datetime import datetime, date
 
-from ..api_scraper import ApiScraper
+from .base_scraper import BaseScraper
 from schemas import N8nTrackingInfo
 
 logger = logging.getLogger(__name__)
 
-class SitcScraper(ApiScraper):
+class SitcScraper(BaseScraper):
     """
     Triển khai logic scraping cụ thể cho trang SITC bằng cách gọi API trực tiếp
     và chuẩn hóa kết quả theo template JSON yêu cầu.
     """
 
     def __init__(self, driver, config):
-        super().__init__(config=config)
+        self.config = config
         self.base_url = "https://ebusiness.sitcline.com/"
         self.api_url = "https://ebusiness.sitcline.com/api/equery/cargoTrack/searchTrack"
         self.session = requests.Session()

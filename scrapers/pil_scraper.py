@@ -4,19 +4,19 @@ import time
 from datetime import datetime, date
 from bs4 import BeautifulSoup
 
-from ..api_scraper import ApiScraper
+from .base_scraper import BaseScraper
 from schemas import N8nTrackingInfo
 
 logger = logging.getLogger(__name__)
 
-class PilScraper(ApiScraper):
+class PilScraper(BaseScraper):
     """
     Triển khai logic scraping cụ thể cho trang web PIL (Pacific International Lines)
     bằng cách gọi API trực tiếp và chuẩn hóa kết quả đầu ra.
     Bao gồm gọi API lần 2 để lấy chi tiết container.
     """
     def __init__(self, driver, config):
-        super().__init__(config=config)
+        self.config = config
         self.get_n_url = "https://www.pilship.com/wp-content/themes/hello-theme-child-master/pil-api/common/get-n.php"
         self.track_url = "https://www.pilship.com/wp-content/themes/hello-theme-child-master/pil-api/trackntrace-containertnt.php"
         self.track_container_url = "https://www.pilship.com/wp-content/themes/hello-theme-child-master/pil-api/trackntrace-containertnt-trace.php?"

@@ -5,18 +5,18 @@ import time
 from datetime import datetime
 from bs4 import BeautifulSoup 
 
-from ..api_scraper import ApiScraper
+from .base_scraper import BaseScraper
 from schemas import N8nTrackingInfo
 logger = logging.getLogger(__name__)
 
-class OslScraper(ApiScraper):
+class OslScraper(BaseScraper):
     """
     Triển khai logic scraping cụ thể cho trang Oceanic Star Line (OSL)
     bằng cách gọi API trực tiếp và chuẩn hóa kết quả theo yêu cầu.
     """
 
     def __init__(self, driver, config):
-        super().__init__(config=config)
+        self.config = config
         self.api_url = "https://star-liners.com/wp-admin/admin-ajax.php"
         self.session = requests.Session()
         self.session.headers.update({

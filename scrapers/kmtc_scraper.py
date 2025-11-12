@@ -3,13 +3,13 @@ import requests
 import time
 from datetime import datetime, date
 
-from ..api_scraper import ApiScraper
+from .base_scraper import BaseScraper
 from schemas import N8nTrackingInfo
 
 # Thiết lập logger cho module
 logger = logging.getLogger(__name__)
 
-class KmtcScraper(ApiScraper):
+class KmtcScraper(BaseScraper):
     """
     Triển khai logic scraping cụ thể cho trang web eKMTC bằng cách gọi API trực tiếp,
     sử dụng logging, cấu trúc chuẩn và chuẩn hóa kết quả đầu ra.

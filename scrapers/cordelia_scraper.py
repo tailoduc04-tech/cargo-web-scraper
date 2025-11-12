@@ -5,11 +5,11 @@ from datetime import datetime
 from schemas import N8nTrackingInfo
 import json
 
-from ..api_scraper import ApiScraper # Vẫn kế thừa từ BaseScraper
+from .base_scraper import BaseScraper # Vẫn kế thừa từ BaseScraper
 
 logger = logging.getLogger(__name__)
 
-class CordeliaScraper(ApiScraper):
+class CordeliaScraper(BaseScraper):
     """
     Triển khai logic scraping cụ thể cho trang Cordelia Line bằng cách gọi API trực tiếp
     và chuẩn hóa kết quả.

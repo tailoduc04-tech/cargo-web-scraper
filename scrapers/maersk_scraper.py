@@ -4,16 +4,16 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException, NoSuchElementException
-import time
+import time # <--- Thêm import time
 import traceback
 import logging
-from ..selenium_scraper import SeleniumScraper
+from .base_scraper import BaseScraper
 from schemas import N8nTrackingInfo
 
 # Lấy logger cho module này
 logger = logging.getLogger(__name__)
 
-class MaerskScraper(SeleniumScraper):
+class MaerskScraper(BaseScraper):
     """
     Triển khai logic scraping cụ thể cho trang Maersk.
     Sử dụng phương pháp truy cập URL trực tiếp
@@ -47,6 +47,10 @@ class MaerskScraper(SeleniumScraper):
         """
         logger.info("Bắt đầu scrape cho mã: %s", tracking_number)
         t_total_start = time.time() # Tổng thời gian bắt đầu
+        
+        # Đặt timeout mặc định cho page
+        self.page.set_default_timeout(45000) # 45 giây
+
         try:
             direct_url = f"{self.config['url']}{tracking_number}"
             logger.info(f"Đang truy cập URL: {direct_url}")
@@ -187,16 +191,23 @@ class MaerskScraper(SeleniumScraper):
 
             if not all_events:
                 logger.warning("Không trích xuất được sự kiện nào từ container cho mã: %s", tracking_number)
-                # Vẫn có thể trả về thông tin cơ bản nếu có
-
-            # 3. Tìm các sự kiện quan trọng và cảng trung chuyển từ danh sách tổng hợp
-            logger.debug("Tìm kiếm các sự kiện quan trọng và transit...")
+            
+            # 3. Tìm các sự kiện quan trọng
+            logger.info("Tìm kiếm các sự kiện quan trọng và transit...")
             departure_event_actual = self._find_event(all_events, "Vessel departure", pol, event_type="ngay_thuc_te")
+            if not departure_event_actual:
+                departure_event_actual = self._find_event(all_events, "Feeder departure", pol, event_type="ngay_thuc_te")
             departure_event_estimated = self._find_event(all_events, "Vessel departure", pol, event_type="ngay_du_kien")
+            if not departure_event_estimated:
+                departure_event_estimated = self._find_event(all_events, "Feeder departure", pol, event_type="ngay_du_kien")
             arrival_event_actual = self._find_event(all_events, "Vessel arrival", pod, event_type="ngay_thuc_te")
+            if not arrival_event_actual:
+                arrival_event_actual = self._find_event(all_events, "Feeder arrival", pod, event_type="ngay_thuc_te")
             arrival_event_estimated = self._find_event(all_events, "Vessel arrival", pod, event_type="ngay_du_kien")
+            if not arrival_event_estimated:
+                arrival_event_estimated = self._find_event(all_events, "Feeder arrival", pod, event_type="ngay_du_kien")
 
-            # 4. Logic transit mới (giống COSCO)
+            # 4. Logic transit
             transit_ports = []
             for event in all_events:
                 location = event.get('location', '').strip() if event.get('location') else ''
@@ -300,7 +311,7 @@ class MaerskScraper(SeleniumScraper):
 
     def _extract_events_from_container(self, container_element):
         """
-        Trích xuất lịch sử sự kiện từ một khối container (Transport Plan).
+        Trích xuất lịch sử sự kiện từ một khối container (Transport Plan). (Async)
         """
         events = []
         try:
@@ -311,25 +322,28 @@ class MaerskScraper(SeleniumScraper):
             for item in list_items:
                 event_data = {}
                 try:
-                    # Vị trí
-                    location_text = item.find_element(By.CSS_SELECTOR, "div.location").text
-                    event_data['location'] = location_text.split('\n')[0].strip()
-                    last_location = event_data['location']
-                except NoSuchElementException:
-                    # Nếu không có location, dùng location của event trước đó
-                    event_data['location'] = last_location
-                    logger.debug("---> Sử dụng last_location: %s", last_location)
+                    milestone_div = item.locator("div.milestone[data-test='milestone']").first
 
+                    # Lấy description (span đầu tiên)
+                    event_data['description'] = (await milestone_div.locator("span").first.text_content(timeout=1000)).strip()
+                    
+                    # Lấy date (span có data-test="milestone-date")
+                    event_data['date'] = (await milestone_div.locator("span[data-test='milestone-date']").first.text_content(timeout=1000)).strip()
+                    # ---------------------------------
+                
+                except Exception as e:
+                    # Fallback nếu không tìm thấy cấu trúc span[data-test]
+                    logger.warning(f"Không tìm thấy cấu trúc span[data-test='milestone-date'], thử fallback: {e}")
+                     
+                    milestone_lines = (await milestone_div.text_content(timeout=1000)).split('\n')
+                    event_data['description'] = milestone_lines[0].strip() if len(milestone_lines) > 0 else None
+                    event_data['date'] = milestone_lines[1].strip() if len(milestone_lines) > 1 else None
 
-                # Chi tiết sự kiện
-                milestone_div = item.find_element(By.CSS_SELECTOR, "div.milestone")
-                milestone_lines = milestone_div.text.split('\n')
-
-                event_data['description'] = milestone_lines[0] if len(milestone_lines) > 0 else None
-                event_data['date'] = milestone_lines[1] if len(milestone_lines) > 1 else None
 
                 # Loại sự kiện (Actual/Estimated)
-                event_data['type'] = "ngay_du_kien" if "future" in item.get_attribute("class") else "ngay_thuc_te"
+                item_class = await item.get_attribute("class") or ""
+                event_data['type'] = "ngay_du_kien" if "transport-plan__list__item transport-plan__list__item--future" in item_class else "ngay_thuc_te"
+                
                 events.append(event_data)
                 logger.debug("---> Trích xuất event: %s", event_data)
         except NoSuchElementException:
