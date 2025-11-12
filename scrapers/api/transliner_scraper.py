@@ -4,22 +4,21 @@ import json
 import time
 from datetime import datetime, date
 
-from .base_scraper import BaseScraper
+from ..api_scraper import ApiScraper
 from schemas import N8nTrackingInfo
 
 logger = logging.getLogger(__name__)
 
-class TranslinerScraper(BaseScraper):
+class TranslinerScraper(ApiScraper):
     """
     Triển khai logic scraping cụ thể cho trang Transliner bằng cách gọi API trực tiếp
     và chuẩn hóa kết quả theo template JSON.
     """
 
     def __init__(self, driver, config):
-        self.config = config
+        super().__init__(config=config)
         self.api_url_template = "https://translinergroup.track.tigris.systems/api/bookings/{booking_number}"
         self.session = requests.Session()
-        # Headers cơ bản
         self.session.headers.update({
             'Accept': 'application/json, text/plain, */*',
             'Accept-Language': 'en-US,en;q=0.9',
@@ -35,7 +34,6 @@ class TranslinerScraper(BaseScraper):
         if not date_str or not isinstance(date_str, str):
             return ""
         try:
-            # Lấy phần ngày tháng năm, bỏ qua phần giờ và Z
             date_part = date_str.split('T')[0]
             if not date_part:
                 return ""
@@ -43,7 +41,7 @@ class TranslinerScraper(BaseScraper):
             return dt_obj.strftime('%d/%m/%Y')
         except (ValueError, IndexError):
             logger.warning("[Transliner API Scraper] Không thể phân tích định dạng ngày: %s", date_str)
-            return "" # Trả về chuỗi rỗng nếu lỗi
+            return ""
 
     def scrape(self, tracking_number):
         """
@@ -93,7 +91,6 @@ class TranslinerScraper(BaseScraper):
                          tracking_number, t_total_end - t_total_start)
             return normalized_data, None
 
-        # --- Xử lý lỗi---
         except requests.exceptions.Timeout:
             t_total_fail = time.time()
             logger.warning("[Transliner API Scraper] Timeout khi gọi API cho mã '%s' (Tổng thời gian: %.2fs)",
@@ -101,10 +98,8 @@ class TranslinerScraper(BaseScraper):
             return None, f"Không tìm thấy kết quả cho '{tracking_number}' (Timeout API)."
         except requests.exceptions.HTTPError as e:
             t_total_fail = time.time()
-            # Log cả response text khi có lỗi HTTP
             logger.error("[Transliner API Scraper] Lỗi HTTP %s khi gọi API cho mã '%s'. Response: %s (Tổng thời gian: %.2fs)",
                          e.response.status_code, tracking_number, e.response.text, t_total_fail - t_total_start, exc_info=False)
-            # Trả về thông báo lỗi thân thiện hơn nếu là 404
             if e.response.status_code == 404:
                  return None, f"Không tìm thấy thông tin cho mã '{tracking_number}' trên API Transliner."
             return None, f"Lỗi HTTP {e.response.status_code} khi truy vấn '{tracking_number}'."
@@ -132,8 +127,6 @@ class TranslinerScraper(BaseScraper):
         t_extract_detail_start = time.time()
         try:
             milestones = api_data.get("milestones", [])
-
-            # === BƯỚC 1: LẤY THÔNG TIN CƠ BẢN ===
             logger.debug("Bắt đầu trích xuất thông tin cơ bản...")
             # API trả về booking_number và bill_of_lading giống nhau
             booking_no = api_data.get("booking_number", tracking_number_input)
@@ -148,7 +141,6 @@ class TranslinerScraper(BaseScraper):
             logger.info(f"Thông tin cơ bản: Booking='{booking_no}', BL='{bl_number}', Status='{booking_status}'")
             logger.debug("-> (Thời gian) Trích xuất thông tin cơ bản: %.2fs", time.time() - t_extract_detail_start) # Log tạm
 
-            # === BƯỚC 2: XỬ LÝ SỰ KIỆN (Milestones) ===
             t_event_start = time.time()
             etd, atd, eta, ata = "", "", "", ""
             transit_port = ""
@@ -181,7 +173,6 @@ class TranslinerScraper(BaseScraper):
             logger.info("API Transliner không cung cấp thông tin chi tiết về POL, POD, và Transit.")
             logger.debug("-> (Thời gian) Xử lý sự kiện: %.2fs", time.time() - t_event_start)
 
-            # === BƯỚC 3: TẠO ĐỐI TƯỢNG JSON CHUẨN HÓA ===
             t_normalize_start = time.time()
             shipment_data = N8nTrackingInfo(
                 BookingNo= booking_no or "",
@@ -205,7 +196,6 @@ class TranslinerScraper(BaseScraper):
             return shipment_data
 
         except Exception as e:
-            # Log lỗi cụ thể khi trích xuất
             logger.error("[Transliner API Scraper] Lỗi trong quá trình trích xuất chi tiết từ API cho mã '%s': %s", tracking_number_input, e, exc_info=True)
             logger.info("[Transliner API Scraper] --- Hoàn tất _extract_and_normalize_data_api (lỗi) --- (Tổng thời gian trích xuất: %.2fs)", time.time() - t_extract_detail_start)
             return None

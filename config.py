@@ -15,14 +15,14 @@ PROXY_PASS = os.getenv("PROXY_PASSWORD")
 
 # Tạo danh sách proxy chỉ khi có đủ thông tin
 PROXY_LIST = []
-if PROXY_USER and PROXY_PASS:
-    ports = range(10001, 10008) # Từ 10001 đến 10007
-    PROXY_LIST = [
-        {"host": "dc.decodo.com", "port": str(port), "user": PROXY_USER, "password": PROXY_PASS}
-        for port in ports
-    ]
-else:
-    print("Proxy username or password not found in .env file. Running without proxy.")
+# if PROXY_USER and PROXY_PASS:
+#     ports = range(10001, 10008) # Từ 10001 đến 10007
+#     PROXY_LIST = [
+#         {"host": "dc.decodo.com", "port": str(port), "user": PROXY_USER, "password": PROXY_PASS}
+#         for port in ports
+#     ]
+# else:
+#     print("Proxy username or password not found in .env file. Running without proxy.")
 
 
 # --- Cấu hình Scraper ---

@@ -6,13 +6,13 @@ class BaseScraper(ABC):
     """
     Abstract Base Class cho tất cả scraper
     """
-    def __init__(self, driver, config):
+    def __init__(self, config, driver=None):
         """
-        Khởi tạo scraper với driver và cấu hình riêng.
+        Khởi tạo scraper với config và driver (nếu có).
 
         Args:
-            driver: Đối tượng Selenium WebDriver.
             config (dict): Dictionary cấu hình cho scraper này (lấy từ config.py).
+            driver (WebDriver, optional): Đối tượng Selenium WebDriver.
         """
         self.driver = driver
         self.config = config

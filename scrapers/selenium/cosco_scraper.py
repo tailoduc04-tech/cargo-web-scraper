@@ -8,12 +8,12 @@ from selenium.common.exceptions import TimeoutException, NoSuchElementException
 import re
 import time
 
-from .base_scraper import BaseScraper
+from ..selenium_scraper import SeleniumScraper
 from schemas import N8nTrackingInfo
 
 logger = logging.getLogger(__name__)
 
-class CoscoScraper(BaseScraper):
+class CoscoScraper(SeleniumScraper):
     """
     Triển khai logic scraping cụ thể cho trang COSCO Shipping Lines
     và chuẩn hóa kết quả theo template JSON.
@@ -125,7 +125,7 @@ class CoscoScraper(BaseScraper):
 
     def _extract_schedule_date(self, cell, date_type):
         """
-        Helper mới: Trích xuất ngày từ cấu trúc table cell của trang kết quả mới.
+        Helper mới: Trích xuất ngày từ cấu trúc table cell của trang kết quả.
         """
         try:
             xpath_selector = f".//span[contains(text(), '{date_type}')]/following-sibling::span"
@@ -138,7 +138,7 @@ class CoscoScraper(BaseScraper):
 
     def _extract_and_normalize_data(self, tracking_number):
         """
-        Trích xuất và chuẩn hóa dữ liệu từ trang kết quả của COSCO (Layout mới).
+        Trích xuất và chuẩn hóa dữ liệu từ trang kết quả của COSCO.
         Đã cập nhật logic tìm EtdTransit gần nhất > hôm nay.
         """
         try:

@@ -1,26 +1,22 @@
 import logging
-import requests # <--- Thêm requests
+import requests
 import time
 from datetime import datetime
 from schemas import N8nTrackingInfo
-import re # Giữ lại re vì có thể cần dùng sau
+import json
 
-from .base_scraper import BaseScraper # Vẫn kế thừa từ BaseScraper
+from ..api_scraper import ApiScraper
 
 logger = logging.getLogger(__name__)
 
-class CordeliaScraper(BaseScraper):
+class CordeliaScraper(ApiScraper):
     """
     Triển khai logic scraping cụ thể cho trang Cordelia Line bằng cách gọi API trực tiếp
     và chuẩn hóa kết quả.
     """
 
     def __init__(self, driver, config):
-        # Không cần driver nữa, nhưng giữ cấu trúc để tương thích
-        # self.driver = None
-        # self.wait = None
-        self.config = config # Vẫn cần config để lấy URL mẫu (nếu API URL thay đổi)
-        # URL API lấy từ JavaScript
+        super().__init__(config=config)
         self.api_url_template = "https://erp.cordelialine.com/cordelia/app/bltracking/bltracingweb?blno={blno}"
 
     def _format_date(self, date_str):
@@ -62,6 +58,11 @@ class CordeliaScraper(BaseScraper):
         try:
             t_request_start = time.time()
             response = requests.get(api_url, headers=headers, timeout=30) # Timeout 30 giây
+
+            # with open("cordelia_response.json", 'w', encoding='utf-8') as f:
+            #     print("Saving raw API response to cordelia_response.json")
+            #     json.dump(response.json(), f, indent=2, ensure_ascii=False, default=str)
+
             logger.info("-> (Thời gian) Gọi API: %.2fs", time.time() - t_request_start)
             response.raise_for_status() # Kiểm tra lỗi HTTP (4xx, 5xx)
 

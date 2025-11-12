@@ -5,18 +5,18 @@ import time
 from datetime import datetime
 from bs4 import BeautifulSoup 
 
-from .base_scraper import BaseScraper
+from ..api_scraper import ApiScraper
 from schemas import N8nTrackingInfo
 logger = logging.getLogger(__name__)
 
-class OslScraper(BaseScraper):
+class OslScraper(ApiScraper):
     """
     Triển khai logic scraping cụ thể cho trang Oceanic Star Line (OSL)
-    bằng cách gọi API trực tiếp và chuẩn hóa kết quả theo template JSON yêu cầu.
+    bằng cách gọi API trực tiếp và chuẩn hóa kết quả theo yêu cầu.
     """
 
     def __init__(self, driver, config):
-        self.config = config
+        super().__init__(config=config)
         self.api_url = "https://star-liners.com/wp-admin/admin-ajax.php"
         self.session = requests.Session()
         self.session.headers.update({
@@ -228,8 +228,6 @@ class OslScraper(BaseScraper):
             atd_transit_date = ts_load_events[-1].get('date') if ts_load_events else None
 
             logger.info(f"Transit Ports: {transit_ports}, AtaT: {ata_transit_date}, AtdT: {atd_transit_date}")
-
-            # === BƯỚC 4: Xây dựng đối tượng JSON cuối cùng ===
             shipment_data = N8nTrackingInfo(
                 BookingNo= tracking_number, # API không trả về BookingNo, dùng tracking_number
                 BlNumber= bl_number or "",

@@ -5,21 +5,18 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException, NoSuchElementException
-import time # <--- Thêm import time
-import traceback
-import re # <--- Thêm import re (đã có sẵn)
+import time
 
-from .base_scraper import BaseScraper
+from ..selenium_scraper import SeleniumScraper
 from schemas import N8nTrackingInfo
 
 # Thiết lập logger cho module này
 logger = logging.getLogger(__name__)
 
-class TailwindScraper(BaseScraper):
+class TailwindScraper(SeleniumScraper):
     """
     Triển khai logic scraping cụ thể cho trang web Tailwind Shipping.
-    Sử dụng Selenium để trích xuất dữ liệu và chuẩn hóa theo
-    schema N8nTrackingInfo.
+    Sử dụng Selenium để trích xuất dữ liệu và chuẩn hóa
     """
 
     def _format_date(self, date_str):
@@ -109,7 +106,6 @@ class TailwindScraper(BaseScraper):
                  logger.info("Đã chuyển sang tab kết quả. (Thời gian chờ tab: %.2fs)", time.time() - t_wait_tab_start)
             else:
                  logger.warning("Không tìm thấy tab kết quả mới.")
-                 # Có thể raise lỗi ở đây nếu cần
 
             t_wait_result_start = time.time()
             self.wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "div.stepwizard")))

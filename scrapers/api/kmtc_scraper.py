@@ -3,13 +3,13 @@ import requests
 import time
 from datetime import datetime, date
 
-from .base_scraper import BaseScraper
+from ..api_scraper import ApiScraper
 from schemas import N8nTrackingInfo
 
 # Thiết lập logger cho module
 logger = logging.getLogger(__name__)
 
-class KmtcScraper(BaseScraper):
+class KmtcScraper(ApiScraper):
     """
     Triển khai logic scraping cụ thể cho trang web eKMTC bằng cách gọi API trực tiếp,
     sử dụng logging, cấu trúc chuẩn và chuẩn hóa kết quả đầu ra.
@@ -69,6 +69,7 @@ class KmtcScraper(BaseScraper):
             t_step1_start = time.time()
             payload_step1 = {"dtKnd": "BL", "blNo": tracking_number}
             response_step1 = self.session.post(self.step1_url, json=payload_step1, timeout=30)
+            
             response_step1.raise_for_status()
             data_step1 = response_step1.json()
             logger.info("-> (Thời gian) Gọi API Bước 1: %.2fs", time.time() - t_step1_start)
@@ -104,6 +105,11 @@ class KmtcScraper(BaseScraper):
                 response_step2 = self.session.get(step2_url, timeout=30)
                 response_step2.raise_for_status()
                 data_step2 = response_step2.json()
+                
+                # with open("output/kmtc_step2_response.json", "w", encoding="utf-8") as f:
+                #     import json
+                #     json.dump(data_step2, f, ensure_ascii=False, indent=4)
+                
                 logger.info("-> (Thời gian) Gọi API Bước 2: %.2fs", time.time() - t_step2_start)
 
                 logger.info("[KMTC API Scraper] Bước 2: Request thành công.")
@@ -151,7 +157,7 @@ class KmtcScraper(BaseScraper):
 
             pol = data_step2.get("polPortEnm", "").split(',')[0].strip() # Lấy tên cảng chính
             pod = data_step2.get("podPortEnm", "").split(',')[0].strip()
-            etd_api = data_step2.get("etd") # YYYYMMDDHHMM
+            etd_api = data_step2.get("etd")
             eta_api = data_step2.get("eta")
 
             # Booking Status: Có thể dùng bkgStsCd hoặc issueStatus từ data_step1

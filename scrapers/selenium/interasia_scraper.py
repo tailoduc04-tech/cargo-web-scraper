@@ -6,15 +6,15 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import NoSuchElementException, TimeoutException
 import re
-import time # <--- Thêm import time
+import time
 
-from .base_scraper import BaseScraper
+from ..selenium_scraper import SeleniumScraper
 from schemas import N8nTrackingInfo
 
 # Thiết lập logger cho module này
 logger = logging.getLogger(__name__)
 
-class InterasiaScraper(BaseScraper):
+class InterasiaScraper(SeleniumScraper):
     """
     Triển khai logic scraping cụ thể cho trang Interasia (đã cập nhật)
     và chuẩn hóa kết quả theo template JSON yêu cầu, sử dụng logging.
@@ -141,11 +141,10 @@ class InterasiaScraper(BaseScraper):
             container_blocks = main_group.find_elements(By.XPATH, "./div[.//p[contains(text(), 'Container No')]]")
             logger.info(f"Tìm thấy {len(container_blocks)} khối container. Sẽ chỉ xử lý container đầu tiên.")
 
-            # --- THAY ĐỔI: Chỉ xử lý block đầu tiên ---
+            # Chỉ xử lý block đầu tiên
             if container_blocks:
                 events = self._extract_events_from_container(container_blocks[0]) # Chỉ lấy block đầu tiên
                 all_events.extend(events)
-            # --- KẾT THÚC THAY ĐỔI ---
 
             logger.info(f"Tổng cộng {len(all_events)} sự kiện đã được thu thập (từ container đầu tiên).")
             logger.debug("-> (Thời gian) Thu thập sự kiện: %.2fs", time.time() - t_event_start)
@@ -208,13 +207,13 @@ class InterasiaScraper(BaseScraper):
             eta_transit = ""
             etd_transit = ""
 
-            # 5. Xây dựng đối tượng JSON chuẩn hóa (đủ 14 trường)
+            # 5. Xây dựng đối tượng JSON chuẩn hóa
             t_normalize_start = time.time()
             logger.debug("Xây dựng đối tượng N8nTrackingInfo...")
             shipment_data = N8nTrackingInfo(
                 BookingNo= tracking_number,
                 BlNumber= tracking_number,
-                BookingStatus= "", # Không tìm thấy trường này trong HTML
+                BookingStatus= "",
                 Pol= pol or "",
                 Pod= pod or "",
                 Etd= self._format_date(etd) or "",
@@ -241,7 +240,7 @@ class InterasiaScraper(BaseScraper):
         """Trích xuất tất cả sự kiện từ một khối container được cung cấp."""
         events = []
         try:
-            # Lấy số container để logging (hữu ích khi debug)
+            # Lấy số container để logging
             try:
                 container_no = container_block.find_element(By.CSS_SELECTOR, "p.title").text.replace("Container No |", "").strip()
                 logger.debug(f"-> Trích xuất sự kiện cho container: {container_no}")
@@ -254,7 +253,7 @@ class InterasiaScraper(BaseScraper):
             logger.debug(f"--> Tìm thấy {len(rows)} hàng sự kiện trong container.")
             for row in rows:
                 cells = row.find_elements(By.TAG_NAME, "td")
-                # Dựa trên result2.html:
+    
                 # 0: Event Date, 1: Depot, 2: Port, 3: Event Description
                 if len(cells) >= 4:
                     event_data = {
