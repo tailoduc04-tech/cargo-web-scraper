@@ -21,7 +21,6 @@ class MscScraper(ApiScraper):
         
         self.api_url = "https://www.msc.com/api/feature/tools/TrackingInfo"
         
-        # Update headers specific to this scraper
         self.session.headers.update({
             'Accept': 'application/json, text/plain, */*',
             'Accept-Language': 'en-US,en;q=0.9',
@@ -230,7 +229,7 @@ class MscScraper(ApiScraper):
                  ata_event = self._find_event_api(all_events, "Discharged From Vessel", pod, find_first=True)
 
 
-            etd_pol = "" # ETD POL: API không cung cấp rõ ràng, để trống
+            etd_pol = ""
             atd_pol = self._format_date(atd_event.get("Date")) if atd_event else ""
             eta_pod = self._format_date(eta_event.get("Date")) if eta_event else ""
             ata_pod = self._format_date(ata_event.get("Date")) if ata_event else ""

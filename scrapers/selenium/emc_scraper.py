@@ -179,11 +179,29 @@ class EmcScraper(SeleniumScraper):
         """
         try:
             # --- LẤY THÔNG TIN CƠ BẢN TỪ TRANG CHÍNH ---
-            bl_number = self.driver.find_element(By.XPATH, "//th[contains(text(), 'B/L No.')]/following-sibling::td").text.strip()
-            pol = self.driver.find_element(By.XPATH, "//th[contains(text(), 'Port of Loading')]/following-sibling::td").text.strip()
-            pod = self.driver.find_element(By.XPATH, "//th[contains(text(), 'Port of Discharge')]/following-sibling::td").text.strip()
-            etd_str = self.driver.find_element(By.XPATH, "//th[contains(text(), 'Estimated On Board Date')]/following-sibling::td").text.strip()
-            eta_str = self.driver.find_element(By.XPATH, "//td[contains(., 'Estimated Date of Arrival at Destination')]/font").text.strip()
+            bl_number = None
+            pol = None
+            pod = None
+            etd_str = None
+            eta_str = None
+            
+            try:
+                bl_number = self.driver.find_element(By.XPATH, "//th[contains(text(), 'B/L No.')]/following-sibling::td").text.strip()
+                pol = self.driver.find_element(By.XPATH, "//th[contains(text(), 'Port of Loading')]/following-sibling::td").text.strip()
+                pod = self.driver.find_element(By.XPATH, "//th[contains(text(), 'Port of Discharge')]/following-sibling::td").text.strip()
+                etd_str = self.driver.find_element(By.XPATH, "//th[contains(text(), 'Estimated On Board Date')]/following-sibling::td").text.strip()
+                eta_str = self.driver.find_element(By.XPATH, "//td[contains(., 'Estimated Date of Arrival at Destination')]/font").text.strip()
+            except NoSuchElementException as e:
+                logger.error("Không thể tìm thấy một số trường thông tin cơ bản trên trang kết quả: %s", e, exc_info=True)
+                # Tiếp tục với các trường trống nếu không tìm thấy
+                if bl_number is None:
+                    bl_number = ""
+                if pol is None:
+                    pol = ""
+                if pod is None:
+                    pod = ""
+                if etd_str is None:
+                    etd_str = ""
             
             logger.info(f"Thông tin cơ bản: B/L={bl_number}, POL={pol}, POD={pod}, ETD={etd_str}, ETA={eta_str}")
 

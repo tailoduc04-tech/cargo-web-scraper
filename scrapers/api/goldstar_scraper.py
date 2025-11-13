@@ -16,14 +16,14 @@ class GoldstarScraper(ApiScraper):
     và chuẩn hóa kết quả theo yêu cầu.
     """
 
-    def __init__(self, driver, config): # driver không còn được sử dụng
+    def __init__(self, driver, config):
         self.config = config
         self.api_url = "https://www.goldstarline.com/api/cms"
         self.session = requests.Session()
         self.session.headers.update({
             'Accept': '*/*',
             'Accept-Language': 'en-US,en;q=0.9',
-            'Content-Type': 'application/json;charset=UTF-8', # Dùng application/json vì payload là JSON
+            'Content-Type': 'application/json;charset=UTF-8',
             'Origin': 'https://www.goldstarline.com',
             'Referer': 'https://www.goldstarline.com/tools/track_shipment',
             'Sec-Ch-Ua': '"Google Chrome";v="141", "Not?A_Brand";v="8", "Chromium";v="141"',

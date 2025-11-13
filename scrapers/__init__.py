@@ -17,10 +17,10 @@ from .api.osl_scraper import OslScraper
 from .api.pan_scraper import PanScraper
 from .api.sealead_scraper import SealeadScraper
 from .api.transliner_scraper import TranslinerScraper
+from .api.yangming_scraper import YangmingScraper
 
 from .selenium.interasia_scraper import InterasiaScraper
 from .selenium.tailwind_scraper import TailwindScraper
-from .selenium.yangming_scraper import YangmingScraper
 from .selenium.cosco_scraper import CoscoScraper
 from .selenium.emc_scraper import EmcScraper
 
@@ -54,7 +54,6 @@ SCRAPER_STRATEGY = {
     # Selenium Scrapers
     "IAL": "selenium",
     "Tailwind": "selenium",
-    "YML": "selenium",
     "COSCO": "selenium",
     "EMC": "selenium",
     
@@ -75,7 +74,8 @@ SCRAPER_STRATEGY = {
     "OSL": "api",
     "PAN": "api",
     "SEALEAD": "api",
-    "TRANSLINER": "api"
+    "TRANSLINER": "api",
+    "YML": "api"
 }
 
 def get_scraper(name, driver_or_page, config):

@@ -47,7 +47,7 @@ class MaerskScraper(PlaywrightScraper):
         t_total_start = time.time() # Tổng thời gian bắt đầu
         
         # Đặt timeout mặc định cho page
-        self.page.set_default_timeout(45000) # 45 giây
+        self.page.set_default_timeout(20000) # 20 giây
 
         try:
             direct_url = f"{self.config['url']}{tracking_number}"

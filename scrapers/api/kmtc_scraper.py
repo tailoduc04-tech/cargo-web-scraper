@@ -15,8 +15,8 @@ class KmtcScraper(ApiScraper):
     sử dụng logging, cấu trúc chuẩn và chuẩn hóa kết quả đầu ra.
     """
 
-    def __init__(self, driver, config): # driver không còn được sử dụng nhưng giữ để tương thích
-        self.config = config # config có thể vẫn cần nếu URL thay đổi
+    def __init__(self, driver, config):
+        self.config = config
         self.step1_url = "https://api.ekmtc.com/trans/trans/cargo-tracking/"
         self.step2_url_template = "https://api.ekmtc.com/trans/trans/cargo-tracking/{bkgNo}/close-info"
         self.session = requests.Session()
