@@ -28,6 +28,7 @@ class Result(BaseModel):
     Errors: Optional[Dict[str, str]] = None
     Message: Optional[str] = ""
     MessageStatus: Optional[str] = ""
+    Service: Optional[str] = ""
 
     class Config:
         str_strip_whitespace = True

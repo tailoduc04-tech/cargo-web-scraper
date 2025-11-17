@@ -21,6 +21,22 @@ class ApiScraper(BaseScraper):
         })
         logger.debug(f"[{self.__class__.__name__}] ApiScraper initialized.")
 
+    def close(self):
+        """Close the requests session to release resources."""
+        if self.session:
+            try:
+                self.session.close()
+                logger.debug(f"[{self.__class__.__name__}] Session closed.")
+            except Exception as e:
+                logger.error(f"Error closing session: {e}")
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.close()
+        return False
+
     def scrape(self, tracking_number: str):
         # Vẫn là abstract, các lớp con tự định nghĩa
         raise NotImplementedError
