@@ -9,23 +9,14 @@
 
 ## Cài đặt và Chạy
 
-1.  **Cấu hình Biến Môi trường:**
-    * Tạo một file tên là `.env` trong thư mục gốc.
-    * Thêm thông tin proxy vào file `.env`:
-        ```dotenv
-        PROXY_USER_NAME="<your_proxy_username>"
-        PROXY_PASSWORD="<your_proxy_password>"
-        ```
-    * Nếu không có thông tin proxy hoặc không muốn dùng, ứng dụng vẫn sẽ chạy nhưng không qua proxy.
-
-2.  **Build và Chạy Docker Containers:**
+1.  **Build và Chạy Docker Containers:**
     * Mở terminal hoặc command prompt trong thư mục gốc của project (`cargo-web-scraper`).
     * Chạy lệnh sau:
         ```bash
         docker-compose up --build -d
         ```
 
-3.  **Kiểm tra Trạng thái:**
+2.  **Kiểm tra Trạng thái:**
     * Đợi một lát để các container khởi động. Có thể kiểm tra trạng thái bằng lệnh:
         ```bash
         docker-compose ps
