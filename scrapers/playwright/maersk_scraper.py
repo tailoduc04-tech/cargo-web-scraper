@@ -9,18 +9,12 @@ from schemas import N8nTrackingInfo
 logger = logging.getLogger(__name__)
 
 class MaerskScraper(PlaywrightScraper):
-    """
-    Triển khai logic scraping cụ thể cho trang Maersk.
-    Sử dụng Playwright và playwright-stealth (Async).
-    """
+    # Triển khai logic scraping cho Maersk sử dụng Playwright và playwright-stealth (Async).
     def __init__(self, page: Page, config: dict):
         super().__init__(page=page, config=config)
 
     def _format_date(self, date_str):
-        """
-        Chuyển đổi chuỗi ngày từ 'DD Mon YYYY HH:MM' sang 'DD/MM/YYYY'.
-        Ví dụ: '24 Oct 2025 09:00' -> '24/10/2025'
-        """
+        # Chuyển đổi chuỗi ngày từ 'DD Mon YYYY HH:MM' sang 'DD/MM/YYYY'. Ví dụ: '24 Oct 2025 09:00' -> '24/10/2025'
         if not date_str:
             return None
         try:
@@ -40,9 +34,7 @@ class MaerskScraper(PlaywrightScraper):
 
     
     async def scrape(self, tracking_number):
-        """
-        Phương thức scrape chính, truy cập URL trực tiếp và trả về một dictionary JSON duy nhất.
-        """
+        # Phương thức scrape chính, truy cập URL trực tiếp và trả về một dictionary JSON duy nhất.
         logger.info("Bắt đầu scrape cho mã: %s", tracking_number)
         t_total_start = time.time() # Tổng thời gian bắt đầu
         
@@ -115,10 +107,7 @@ class MaerskScraper(PlaywrightScraper):
 
     
     async def _extract_and_normalize_data(self, tracking_number):
-        """
-        Trích xuất, xử lý và chuẩn hóa dữ liệu thành một dictionary duy nhất
-        Chỉ xử lý container đầu tiên.
-        """
+        # Trích xuất, xử lý và chuẩn hóa dữ liệu thành một dictionary duy nhất. Chỉ xử lý container đầu tiên.
         try:
             # 1. Trích xuất thông tin tóm tắt chung
             logger.info("Bắt đầu trích xuất thông tin tóm tắt...")

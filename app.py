@@ -41,23 +41,20 @@ if not os.path.exists("output"):
     os.makedirs("output")
     
 def run_selenium_task_sync(scraper_name, tracking_number, scraper_config, proxy_info):
-    """
-    Hàm này chạy trọn vẹn vòng đời của 1 driver: Tạo -> Scrape -> Quit
-    """
+    # Hàm này chạy toàn bộ vòng đời của một driver: Tạo -> Scrape -> Thoát
     driver = None
     try:
-        print(f"[{scraper_name}] Thread: Starting driver...")
+        print(f"[{scraper_name}] Luồng: Khởi động trình điều khiển...")
         driver = driver_setup.create_driver(proxy_info)
-        
         scraper_instance = scrapers.get_scraper(scraper_name, driver, scraper_config)
         data, error = scraper_instance.scrape(tracking_number)
         return data, error
     except Exception as e:
-        print(f"[{scraper_name}] Thread Error: {e}")
+        print(f"[{scraper_name}] Lỗi trong luồng: {e}")
         return None, str(e)
     finally:
         if driver:
-            print(f"[{scraper_name}] Thread: Closing driver.")
+            print(f"[{scraper_name}] Luồng: Đóng trình điều khiển.")
             try:
                 driver.quit()
             except Exception:
@@ -76,8 +73,8 @@ async def run_scraping_task(scraper_name: str, tracking_number: str) -> Tuple[Op
     scraper_config = config.SCRAPER_CONFIGS.get(scraper_name, {})
     
     if strategy == "selenium":
-        # [QUAN TRỌNG] Dùng asyncio.to_thread để không chặn FastAPI
-        print(f"[{scraper_name}] Dispatching Selenium task to thread pool...")
+        # Dùng asyncio.to_thread để không chặn FastAPI
+        print(f"[{scraper_name}] Đang chuyển tác vụ Selenium sang thread pool...")
         data, error = await asyncio.to_thread(
             run_selenium_task_sync, 
             scraper_name, 
@@ -89,47 +86,41 @@ async def run_scraping_task(scraper_name: str, tracking_number: str) -> Tuple[Op
 
     elif strategy == "playwright":
         start_browser_time = time.time()
-        print(f"[{scraper_name}] Strategy: Playwright. Initializing async browser...")
-        p, browser = await browser_setup.create_playwright_context(selected_proxy) # Async
-        
+        print(f"[{scraper_name}] Chiến lược: Playwright. Đang khởi tạo trình duyệt async...")
+        p, browser = await browser_setup.create_playwright_context(selected_proxy)
         if not browser:
-            return None, "Failed to initialize Playwright browser"
-            
-        page = await browser_setup.create_page_context(browser) # Async
+            return None, "Không khởi tạo được trình duyệt Playwright"
+        page = await browser_setup.create_page_context(browser)
         if not page:
-                # Dọn dẹp nếu tạo page lỗi
+            # Dọn dẹp nếu tạo page lỗi
             await browser.close()
             await p.stop()
-            return None, "Failed to initialize Playwright page"
-
-        print(f"Playwright browser/page initialized in {time.time() - start_browser_time:.2f} seconds.")
-        
+            return None, "Không khởi tạo được trang Playwright"
+        print(f"Trình duyệt/trang Playwright khởi tạo sau {time.time() - start_browser_time:.2f} giây.")
         try:
             scraper_instance = scrapers.get_scraper(scraper_name, page, scraper_config)
             data, error = await scraper_instance.scrape(tracking_number)
             return data, error
         finally:
-            # CRITICAL: Always cleanup browser resources to prevent memory leaks
-            print(f"[{scraper_name}] Cleaning up Playwright browser and context...")
+            print(f"[{scraper_name}] Đang dọn dẹp trình duyệt và context Playwright...")
             try:
                 if page:
-                    # Closing page also closes its context
                     context = page.context
                     await page.close()
                     if context:
                         await context.close()
             except Exception as e:
-                print(f"[{scraper_name}] Error closing page/context: {e}")
+                print(f"[{scraper_name}] Lỗi khi đóng page/context: {e}")
             try:
                 if browser:
                     await browser.close()
             except Exception as e:
-                print(f"[{scraper_name}] Error closing browser: {e}")
+                print(f"[{scraper_name}] Lỗi khi đóng trình duyệt: {e}")
             try:
                 if p:
                     await p.stop()
             except Exception as e:
-                print(f"[{scraper_name}] Error stopping playwright: {e}")
+                print(f"[{scraper_name}] Lỗi khi dừng playwright: {e}")
 
     elif strategy == "api":
         scraper_instance = scrapers.get_scraper(scraper_name, None, scraper_config)
@@ -137,13 +128,12 @@ async def run_scraping_task(scraper_name: str, tracking_number: str) -> Tuple[Op
             data, error = await asyncio.to_thread(scraper_instance.scrape, tracking_number)
             return data, error
         finally:
-            # Close the requests session to prevent resource leaks
             if hasattr(scraper_instance, 'close'):
                 try:
                     scraper_instance.close()
-                    print(f"[{scraper_name}] API scraper session closed.")
+                    print(f"[{scraper_name}] Đã đóng session API scraper.")
                 except Exception as e:
-                    print(f"[{scraper_name}] Error closing API scraper: {e}")
+                    print(f"[{scraper_name}] Lỗi khi đóng API scraper: {e}")
 
     return None, f"Strategy not found: {scraper_name}"
 

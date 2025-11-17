@@ -10,14 +10,11 @@ from schemas import N8nTrackingInfo
 logger = logging.getLogger(__name__)
 
 class OslScraper(ApiScraper):
-    """
-    Triển khai logic scraping cụ thể cho trang Oceanic Star Line (OSL)
-    bằng cách gọi API trực tiếp và chuẩn hóa kết quả theo yêu cầu.
-    """
+    # Triển khai logic scraping cho Oceanic Star Line (OSL) bằng API trực tiếp và chuẩn hóa kết quả theo yêu cầu.
 
     def __init__(self, driver, config):
         super().__init__(config=config)
-        self.api_url = "https://star-liners.com/wp-admin/admin-ajax.php"
+        self.api_url = self.config.get('api_url', 'https://star-liners.com/wp-admin/admin-ajax.php')
         self.session = requests.Session()
         self.session.headers.update({
             'Accept': '*/*',
@@ -37,10 +34,7 @@ class OslScraper(ApiScraper):
 
 
     def _format_date(self, date_str):
-        """
-        Chuyển đổi chuỗi ngày từ 'Weekday, DD-Mon-YYYY' (ví dụ: Sunday, 20-Jul-2025)
-        sang định dạng 'DD/MM/YYYY'. Trả về "" nếu lỗi.
-        """
+        # Chuyển đổi chuỗi ngày từ 'Weekday, DD-Mon-YYYY' sang 'DD/MM/YYYY'. Trả về "" nếu lỗi.
         if not date_str or not isinstance(date_str, str):
             return ""
         try:
@@ -52,14 +46,12 @@ class OslScraper(ApiScraper):
             return ""
 
     def scrape(self, tracking_number):
-        """
-        Phương thức scraping chính cho Oceanic Star Line bằng API.
-        """
+        # Phương thức scraping chính cho Oceanic Star Line bằng API.
         logger.info("[OSL API Scraper] Bắt đầu scrape cho mã: %s", tracking_number)
         t_total_start = time.time() # Tổng thời gian bắt đầu
 
         payload = {
-            'nonce': '23a2b8b108',
+            'nonce': self.config.get('nonce', '23a2b8b108'),
             'container_no': '',
             'bl_no': tracking_number,
             'action': 'search'

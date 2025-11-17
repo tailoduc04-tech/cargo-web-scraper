@@ -10,14 +10,12 @@ from schemas import N8nTrackingInfo
 logger = logging.getLogger(__name__)
 
 class YangmingScraper(ApiScraper):
-    """
-    Triển khai logic scraping cho Yang Ming (YML) bằng API.
-    """
+    # Triển khai logic scraping cho Yang Ming (YML) bằng API.
 
     def __init__(self, driver, config):
         super().__init__(config=config)
-        self.landing_url = "https://www.yangming.com/en/esolution/cargo_tracking"
-        self.api_url = "https://www.yangming.com/api/CargoTracking/GetTracking"
+        self.landing_url = self.config.get('landing_url', 'https://www.yangming.com/en/esolution/cargo_tracking')
+        self.api_url = self.config.get('api_url', 'https://www.yangming.com/api/CargoTracking/GetTracking')
         
         # Cập nhật headers giả lập trình duyệt để vượt qua lớp bảo mật
         self.session.headers.update({
@@ -34,10 +32,7 @@ class YangmingScraper(ApiScraper):
         })
 
     def _format_date(self, date_str):
-        """
-        Chuyển đổi 'YYYY/MM/DD HH:MM' -> 'DD/MM/YYYY'.
-        Ví dụ: '2025/10/04 20:30' -> '04/10/2025'
-        """
+        # Chuyển đổi 'YYYY/MM/DD HH:MM' -> 'DD/MM/YYYY'. Ví dụ: '2025/10/04 20:30' -> '04/10/2025'
         if not date_str or not isinstance(date_str, str):
             return ""
         try:

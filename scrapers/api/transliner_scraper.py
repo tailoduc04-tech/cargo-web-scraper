@@ -10,14 +10,11 @@ from schemas import N8nTrackingInfo
 logger = logging.getLogger(__name__)
 
 class TranslinerScraper(ApiScraper):
-    """
-    Triển khai logic scraping cụ thể cho trang Transliner bằng cách gọi API trực tiếp
-    và chuẩn hóa kết quả theo template JSON.
-    """
+    # Triển khai logic scraping cho Transliner bằng API trực tiếp và chuẩn hóa kết quả theo template JSON.
 
     def __init__(self, driver, config):
         super().__init__(config=config)
-        self.api_url_template = "https://translinergroup.track.tigris.systems/api/bookings/{booking_number}"
+        self.api_url_template = self.config.get('api_url', 'https://translinergroup.track.tigris.systems/api/bookings/{booking_number}')
         self.session = requests.Session()
         self.session.headers.update({
             'Accept': 'application/json, text/plain, */*',
@@ -27,10 +24,7 @@ class TranslinerScraper(ApiScraper):
         })
 
     def _format_date(self, date_str):
-        """
-        Chuyển đổi chuỗi ngày từ API format 'YYYY-MM-DDTHH:MM:SSZ' sang 'DD/MM/YYYY'.
-        Trả về "" nếu đầu vào không hợp lệ hoặc rỗng.
-        """
+        # Chuyển đổi chuỗi ngày từ API format 'YYYY-MM-DDTHH:MM:SSZ' sang 'DD/MM/YYYY'. Trả về "" nếu lỗi.
         if not date_str or not isinstance(date_str, str):
             return ""
         try:
@@ -44,9 +38,7 @@ class TranslinerScraper(ApiScraper):
             return ""
 
     def scrape(self, tracking_number):
-        """
-        Phương thức scraping chính cho Transliner bằng API.
-        """
+        # Phương thức scraping chính cho Transliner bằng API.
         logger.info("[Transliner API Scraper] Bắt đầu scrape cho mã: %s", tracking_number)
         t_total_start = time.time()
 

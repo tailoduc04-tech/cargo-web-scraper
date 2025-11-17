@@ -14,15 +14,10 @@ from schemas import N8nTrackingInfo
 logger = logging.getLogger(__name__)
 
 class CoscoScraper(SeleniumScraper):
-    """
-    Triển khai logic scraping cụ thể cho trang COSCO Shipping Lines
-    và chuẩn hóa kết quả theo template JSON.
-    """
+    # Triển khai logic scraping cho COSCO Shipping Lines và chuẩn hóa kết quả theo template JSON.
 
     def _format_date(self, date_str):
-        """
-        Chuyển đổi chuỗi ngày từ 'YYYY-MM-DD HH:MM:SS...' sang 'DD/MM/YYYY'.
-        """
+        # Chuyển đổi chuỗi ngày từ 'YYYY-MM-DD HH:MM:SS...' sang 'DD/MM/YYYY'.
         if not date_str or not isinstance(date_str, str):
             return None
         try:
@@ -34,9 +29,7 @@ class CoscoScraper(SeleniumScraper):
             return date_str
 
     def _extract_date_from_text(self, text, date_type):
-        """
-        Trích xuất ngày 'Actual' hoặc 'Expected' từ một chuỗi.
-        """
+        # Trích xuất ngày 'Actual' hoặc 'Expected' từ một chuỗi.
         if not text or date_type not in text:
             return None
         match = re.search(fr'{date_type}:\s*(\d{{4}}-\d{{2}}-\d{{2}}\s*\d{{2}}:\d{{2}}:\d{{2}})', text)
@@ -45,9 +38,7 @@ class CoscoScraper(SeleniumScraper):
         return None
 
     def scrape(self, tracking_number):
-        """
-        Phương thức scrape chính. Thực hiện tìm kiếm và trả về dữ liệu đã chuẩn hóa.
-        """
+        # Phương thức scrape chính. Thực hiện tìm kiếm và trả về dữ liệu đã chuẩn hóa.
         logger.info("Bắt đầu scrape cho mã: %s", tracking_number)
         t_total_start = time.time()
         
@@ -124,9 +115,7 @@ class CoscoScraper(SeleniumScraper):
 
 
     def _extract_schedule_date(self, cell, date_type):
-        """
-        Helper mới: Trích xuất ngày từ cấu trúc table cell của trang kết quả.
-        """
+        # Helper: Trích xuất ngày từ cấu trúc table cell của trang kết quả.
         try:
             xpath_selector = f".//span[contains(text(), '{date_type}')]/following-sibling::span"
             date_str = cell.find_element(By.XPATH, xpath_selector).text
@@ -137,10 +126,7 @@ class CoscoScraper(SeleniumScraper):
             return None
 
     def _extract_and_normalize_data(self, tracking_number):
-        """
-        Trích xuất và chuẩn hóa dữ liệu từ trang kết quả của COSCO.
-        Đã cập nhật logic tìm EtdTransit gần nhất > hôm nay.
-        """
+        # Trích xuất và chuẩn hóa dữ liệu từ trang kết quả của COSCO. Đã cập nhật logic tìm EtdTransit gần nhất > hôm nay.
         try:
             # === BƯỚC 1: LẤY THÔNG TIN TÓM TẮT ===
             bkg_no_text = self.wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "div.ct-side-bar span.side-bar-title span"))).text

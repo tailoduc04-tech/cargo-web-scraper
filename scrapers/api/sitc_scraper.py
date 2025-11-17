@@ -9,15 +9,12 @@ from schemas import N8nTrackingInfo
 logger = logging.getLogger(__name__)
 
 class SitcScraper(ApiScraper):
-    """
-    Triển khai logic scraping cụ thể cho trang SITC bằng cách gọi API trực tiếp
-    và chuẩn hóa kết quả theo template JSON yêu cầu.
-    """
+    # Triển khai logic scraping cho SITC bằng API trực tiếp và chuẩn hóa kết quả theo template JSON yêu cầu.
 
     def __init__(self, driver, config):
         super().__init__(config=config)
-        self.base_url = "https://ebusiness.sitcline.com/"
-        self.api_url = "https://ebusiness.sitcline.com/api/equery/cargoTrack/searchTrack"
+        self.base_url = self.config.get('base_url', 'https://ebusiness.sitcline.com/')
+        self.api_url = self.config.get('api_url', 'https://ebusiness.sitcline.com/api/equery/cargoTrack/searchTrack')
         self.session = requests.Session()
         self.session.headers.update({
             'Accept': 'application/json, text/plain, */*',
@@ -35,10 +32,7 @@ class SitcScraper(ApiScraper):
         })
 
     def _format_date(self, date_str):
-        """
-        Chuyển đổi chuỗi ngày từ 'YYYY-MM-DD HH:MM' sang 'DD/MM/YYYY'.
-        Trả về "" nếu đầu vào không hợp lệ hoặc rỗng.
-        """
+        # Chuyển đổi chuỗi ngày từ 'YYYY-MM-DD HH:MM' sang 'DD/MM/YYYY'. Trả về "" nếu lỗi.
         if not date_str or not isinstance(date_str, str):
             return ""
         try:
@@ -52,10 +46,7 @@ class SitcScraper(ApiScraper):
             return ""
 
     def scrape(self, tracking_number):
-        """
-        Phương thức scrape chính bằng API.
-        Thực hiện lấy cookie và gọi API tracking.
-        """
+        # Phương thức scrape chính bằng API. Thực hiện lấy cookie và gọi API tracking.
         logger.info("[SITC API Scraper] Bắt đầu scrape cho mã: %s", tracking_number)
         t_total_start = time.time()
 

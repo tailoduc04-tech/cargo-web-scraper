@@ -28,10 +28,7 @@ def _split_location_and_datetime(input_string):
         return input_string.strip(), ""
 
 class HeungALineScraper(ApiScraper):
-    """
-    Triển khai logic scraping cụ thể cho trang Heung-A Line và chuẩn hóa kết quả
-    theo định dạng JSON yêu cầu. Sử dụng requests và BeautifulSoup.
-    """
+    # Triển khai logic scraping cho Heung-A Line và chuẩn hóa kết quả theo định dạng JSON yêu cầu.
     def __init__(self, driver, config):
         super().__init__(config=config)
         self.session = requests.Session()
@@ -43,10 +40,7 @@ class HeungALineScraper(ApiScraper):
         })
 
     def _format_date(self, date_str):
-        """
-        Chuyển đổi chuỗi ngày từ 'YYYY-MM-DD ...' sang 'DD/MM/YYYY'.
-        Trả về "" nếu lỗi hoặc đầu vào không hợp lệ.
-        """
+        # Chuyển đổi chuỗi ngày từ 'YYYY-MM-DD ...' sang 'DD/MM/YYYY'. Trả về "" nếu lỗi hoặc đầu vào không hợp lệ.
         if not date_str or not isinstance(date_str, str):
             return ""
         try:
@@ -59,9 +53,7 @@ class HeungALineScraper(ApiScraper):
 
     @staticmethod
     def _extract_code(location_text):
-        """
-        Trích xuất mã trong dấu ngoặc đơn từ tên vị trí.
-        """
+        # Trích xuất mã trong dấu ngoặc đơn từ tên vị trí.
         if not location_text:
             return ""
         match = re.search(r'\((.*?)\)', location_text)
@@ -70,10 +62,7 @@ class HeungALineScraper(ApiScraper):
         return location_text.lower()
 
     def _get_text_safe_soup(self, soup_element, selector, attribute=None):
-        """
-        Helper lấy text hoặc attribute từ phần tử BeautifulSoup một cách an toàn.
-        Trả về chuỗi rỗng "" nếu không tìm thấy.
-        """
+        # Helper lấy text hoặc attribute từ phần tử BeautifulSoup một cách an toàn. Trả về chuỗi rỗng "" nếu không tìm thấy.
         if not soup_element:
             return ""
         try:
@@ -90,9 +79,7 @@ class HeungALineScraper(ApiScraper):
             return ""
 
     def _parse_event_datetime(self, date_str):
-        """
-        Helper: Chuyển đổi chuỗi ngày sự kiện thành đối tượng datetime để so sánh.
-        """
+        # Helper: Chuyển đổi chuỗi ngày sự kiện thành đối tượng datetime để so sánh.
         if not date_str:
             return None, None
         try:
@@ -114,9 +101,7 @@ class HeungALineScraper(ApiScraper):
             return None, None
 
     def scrape(self, tracking_number):
-        """
-        Scrape dữ liệu cho một mã B/L trên trang Heung-A Line bằng requests và BeautifulSoup.
-        """
+        # Scrape dữ liệu cho một mã B/L trên trang Heung-A Line bằng requests và BeautifulSoup.
         logger.info(f"[HeungA Scraper] Bắt đầu scrape cho mã: {tracking_number} (sử dụng requests)")
         t_total_start = time.time()
         try:

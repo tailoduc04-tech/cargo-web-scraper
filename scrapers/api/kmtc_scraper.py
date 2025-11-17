@@ -10,15 +10,12 @@ from schemas import N8nTrackingInfo
 logger = logging.getLogger(__name__)
 
 class KmtcScraper(ApiScraper):
-    """
-    Triển khai logic scraping cụ thể cho trang web eKMTC bằng cách gọi API trực tiếp,
-    sử dụng logging, cấu trúc chuẩn và chuẩn hóa kết quả đầu ra.
-    """
+    # Triển khai logic scraping cho eKMTC bằng API trực tiếp, logging và chuẩn hóa kết quả đầu ra.
 
     def __init__(self, driver, config):
         self.config = config
-        self.step1_url = "https://api.ekmtc.com/trans/trans/cargo-tracking/"
-        self.step2_url_template = "https://api.ekmtc.com/trans/trans/cargo-tracking/{bkgNo}/close-info"
+        self.step1_url = self.config.get('api_step1_url', 'https://api.ekmtc.com/trans/trans/cargo-tracking/')
+        self.step2_url_template = self.config.get('api_step2_url', 'https://api.ekmtc.com/trans/trans/cargo-tracking/{bkgNo}/close-info')
         self.session = requests.Session()
         self.session.headers.update({
             'Accept': 'application/json, text/plain, */*',
@@ -38,10 +35,7 @@ class KmtcScraper(ApiScraper):
         })
 
     def _format_date(self, date_str):
-        """
-        Chuyển đổi chuỗi ngày từ API format 'YYYYMMDDHHMM' sang 'DD/MM/YYYY'.
-        Trả về chuỗi rỗng "" nếu đầu vào không hợp lệ hoặc rỗng.
-        """
+        # Chuyển đổi chuỗi ngày từ API format 'YYYYMMDDHHMM' sang 'DD/MM/YYYY'. Trả về chuỗi rỗng nếu lỗi.
         if not date_str or not isinstance(date_str, str) or len(date_str) < 8:
             return ""
         try:
@@ -54,10 +48,7 @@ class KmtcScraper(ApiScraper):
             return "" # Trả về chuỗi rỗng nếu lỗi
 
     def scrape(self, tracking_number):
-        """
-        Phương thức scrape chính bằng API.
-        Thực hiện 2 bước gọi API và trả về dữ liệu đã chuẩn hóa.
-        """
+        # Phương thức scrape chính bằng API. Thực hiện 2 bước gọi API và trả về dữ liệu đã chuẩn hóa.
         logger.info("[KMTC API Scraper] Bắt đầu scrape cho mã: %s", tracking_number)
         t_total_start = time.time()
         bkg_no = None

@@ -10,16 +10,12 @@ from schemas import N8nTrackingInfo
 logger = logging.getLogger(__name__)
 
 class PilScraper(ApiScraper):
-    """
-    Triển khai logic scraping cụ thể cho trang web PIL (Pacific International Lines)
-    bằng cách gọi API trực tiếp và chuẩn hóa kết quả đầu ra.
-    Bao gồm gọi API lần 2 để lấy chi tiết container.
-    """
+    # Triển khai logic scraping cho PIL (Pacific International Lines) bằng API trực tiếp và chuẩn hóa kết quả đầu ra. Bao gồm gọi API lần 2 để lấy chi tiết container.
     def __init__(self, driver, config):
         super().__init__(config=config)
-        self.get_n_url = "https://www.pilship.com/wp-content/themes/hello-theme-child-master/pil-api/common/get-n.php"
-        self.track_url = "https://www.pilship.com/wp-content/themes/hello-theme-child-master/pil-api/trackntrace-containertnt.php"
-        self.track_container_url = "https://www.pilship.com/wp-content/themes/hello-theme-child-master/pil-api/trackntrace-containertnt-trace.php?"
+        self.get_n_url = self.config.get('get_n_url', 'https://www.pilship.com/wp-content/themes/hello-theme-child-master/pil-api/common/get-n.php')
+        self.track_url = self.config.get('track_url', 'https://www.pilship.com/wp-content/themes/hello-theme-child-master/pil-api/trackntrace-containertnt.php')
+        self.track_container_url = self.config.get('track_container_url', 'https://www.pilship.com/wp-content/themes/hello-theme-child-master/pil-api/trackntrace-containertnt-trace.php?')
         self.session = requests.Session()
         self.session.headers.update({
             'Accept': '*/*',
@@ -39,11 +35,7 @@ class PilScraper(ApiScraper):
 
 
     def _format_date(self, date_str):
-        """
-        Chuyển đổi các định dạng ngày tháng ('DD-Mon-YYYY HH:MM:SS' hoặc 'DD-Mon-YYYY')
-        sang 'DD/MM/YYYY'.
-        Xử lý thêm dấu '*' ở đầu ngày Estimated.
-        """
+        # Chuyển đổi các định dạng ngày tháng ('DD-Mon-YYYY HH:MM:SS' hoặc 'DD-Mon-YYYY') sang 'DD/MM/YYYY'. Xử lý thêm dấu '*' ở đầu ngày Estimated.
         if not date_str or not isinstance(date_str, str):
             return ""
 

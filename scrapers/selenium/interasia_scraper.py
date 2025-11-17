@@ -15,13 +15,10 @@ from schemas import N8nTrackingInfo
 logger = logging.getLogger(__name__)
 
 class InterasiaScraper(SeleniumScraper):
-    """
-    Triển khai logic scraping cụ thể cho trang Interasia (đã cập nhật)
-    và chuẩn hóa kết quả theo template JSON yêu cầu, sử dụng logging.
-    """
+    # Triển khai logic scraping cho Interasia (đã cập nhật) và chuẩn hóa kết quả theo template JSON yêu cầu, sử dụng logging.
 
     def _format_date(self, date_str):
-        """Chuyển đổi chuỗi ngày từ 'YYYY/MM/DD HH:MM:SS' sang 'DD/MM/YYYY'."""
+        # Chuyển đổi chuỗi ngày từ 'YYYY/MM/DD HH:MM:SS' sang 'DD/MM/YYYY'.
         if not date_str or not isinstance(date_str, str):
             return None
         try:
@@ -34,10 +31,7 @@ class InterasiaScraper(SeleniumScraper):
             return date_str # Trả về chuỗi gốc nếu không parse được
 
     def scrape(self, tracking_number):
-        """
-        Phương thức scrape chính cho Interasia.
-        Thực hiện tìm kiếm, click vào link chi tiết và trích xuất dữ liệu.
-        """
+        # Phương thức scrape chính cho Interasia. Thực hiện tìm kiếm, click vào link chi tiết và trích xuất dữ liệu.
         logger.info("Bắt đầu scrape cho mã: %s (Interasia)", tracking_number)
         t_total_start = time.time() # Tổng thời gian bắt đầu
         try:
@@ -105,10 +99,7 @@ class InterasiaScraper(SeleniumScraper):
             return None, f"Đã xảy ra lỗi không mong muốn cho '{tracking_number}': {e}"
 
     def _extract_and_normalize_data(self, detail_url, tracking_number):
-        """
-        Scrape trang chi tiết B/L (từ detail_url), trích xuất và chuẩn hóa dữ liệu.
-        Chỉ xử lý container đầu tiên.
-        """
+        # Scrape trang chi tiết B/L (từ detail_url), trích xuất và chuẩn hóa dữ liệu. Chỉ xử lý container đầu tiên.
         logger.info("Bắt đầu trích xuất dữ liệu từ trang chi tiết: %s", detail_url)
         t_extract_detail_start = time.time()
         try:
@@ -237,7 +228,7 @@ class InterasiaScraper(SeleniumScraper):
             return None
 
     def _extract_events_from_container(self, container_block):
-        """Trích xuất tất cả sự kiện từ một khối container được cung cấp."""
+        # Trích xuất tất cả sự kiện từ một khối container được cung cấp.
         events = []
         try:
             # Lấy số container để logging
@@ -271,11 +262,7 @@ class InterasiaScraper(SeleniumScraper):
         return events
 
     def _find_event(self, events, description_keyword, location_keyword):
-        """
-        Tìm một sự kiện cụ thể trong danh sách các sự kiện dựa trên
-        từ khóa mô tả và từ khóa địa điểm.
-        Trả về sự kiện (dict) đầu tiên khớp hoặc dictionary rỗng.
-        """
+        # Tìm một sự kiện cụ thể trong danh sách các sự kiện dựa trên từ khóa mô tả và từ khóa địa điểm. Trả về sự kiện (dict) đầu tiên khớp hoặc dictionary rỗng.
         if not location_keyword:
             logger.debug(f"-> _find_event: Không tìm thấy sự kiện '{description_keyword}' vì location_keyword rỗng.")
             return {}

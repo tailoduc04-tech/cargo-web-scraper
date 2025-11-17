@@ -28,10 +28,7 @@ def _split_location_and_datetime(input_string):
         return input_string.strip(), ""
 
 class SinokorScraper(ApiScraper):
-    """
-    Triển khai logic scraping cụ thể cho trang Sinokor và chuẩn hóa kết quả
-    theo định dạng JSON yêu cầu. Sử dụng requests để tải trang và BeautifulSoup để parse.
-    """
+    # Triển khai logic scraping cho Sinokor và chuẩn hóa kết quả theo định dạng JSON yêu cầu. Sử dụng requests và BeautifulSoup.
     def __init__(self, driver, config):
         super().__init__(config=config)
         self.session = requests.Session()
@@ -43,10 +40,7 @@ class SinokorScraper(ApiScraper):
         })
 
     def _format_date(self, date_str):
-        """
-        Chuyển đổi chuỗi ngày từ 'YYYY-MM-DD ...' sang 'DD/MM/YYYY'.
-        Trả về "" nếu lỗi hoặc đầu vào không hợp lệ.
-        """
+        # Chuyển đổi chuỗi ngày từ 'YYYY-MM-DD ...' sang 'DD/MM/YYYY'. Trả về "" nếu lỗi hoặc đầu vào không hợp lệ.
         if not date_str or not isinstance(date_str, str):
             return ""
         try:

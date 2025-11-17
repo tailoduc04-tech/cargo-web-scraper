@@ -11,10 +11,7 @@ from schemas import N8nTrackingInfo
 logger = logging.getLogger(__name__)
 
 class SealeadScraper(ApiScraper):
-    """
-    Triển khai logic scraping cụ thể cho trang web SeaLead bằng requests và BeautifulSoup,
-    chuẩn hóa kết quả theo định dạng JSON yêu cầu.
-    """
+    # Triển khai logic scraping cho SeaLead bằng requests và BeautifulSoup, chuẩn hóa kết quả theo định dạng JSON yêu cầu.
     def __init__(self, driver, config): # driver không còn được sử dụng
         self.config = config
         # Tạo session để quản lý headers và cookies
@@ -28,10 +25,7 @@ class SealeadScraper(ApiScraper):
         })
 
     def _format_date(self, date_str):
-        """
-        Chuyển đổi chuỗi ngày từ 'Month DD, YYYY' hoặc 'YYYY-MM-DD HH:MM:SS' sang 'DD/MM/YYYY'.
-        Trả về "" nếu lỗi.
-        """
+        # Chuyển đổi chuỗi ngày từ 'Month DD, YYYY' hoặc 'YYYY-MM-DD HH:MM:SS' sang 'DD/MM/YYYY'. Trả về "" nếu lỗi.
         if not date_str or not isinstance(date_str, str):
             return ""
         # Thử format '%B %d, %Y' trước
@@ -50,10 +44,7 @@ class SealeadScraper(ApiScraper):
                 return "" # Trả về chuỗi rỗng
 
     def _get_text_safe_soup(self, soup_element, selector, attribute=None):
-        """
-        Helper lấy text hoặc attribute từ phần tử BeautifulSoup một cách an toàn.
-        Trả về chuỗi rỗng "" nếu không tìm thấy.
-        """
+        # Helper lấy text hoặc attribute từ phần tử BeautifulSoup một cách an toàn. Trả về chuỗi rỗng nếu không tìm thấy.
         if not soup_element:
             return ""
         try:

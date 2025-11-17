@@ -50,8 +50,6 @@ async def create_playwright_context(proxy_config: Optional[dict] = None) -> Tupl
 async def create_page_context(browser: Browser) -> Optional[Page]:
     """
     Tạo một BrowserContext và Page mới, áp dụng stealth (Async).
-    NOTE: The page.context will contain the BrowserContext which should be closed
-    via page.close() to properly release resources.
     """
     if not browser:
         return None

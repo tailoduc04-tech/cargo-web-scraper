@@ -9,14 +9,11 @@ from schemas import N8nTrackingInfo
 logger = logging.getLogger(__name__)
 
 class PanScraper(ApiScraper):
-    """
-    Triển khai logic scraping cụ thể cho trang Pan Continental Shipping
-    bằng cách gọi API trực tiếp và chuẩn hóa kết quả theo yêu cầu.
-    """
+    # Triển khai logic scraping cho Pan Continental Shipping bằng API trực tiếp và chuẩn hóa kết quả theo yêu cầu.
 
     def __init__(self, driver, config):
         super().__init__(config=config)
-        self.api_url = "https://www.pancon.co.kr/pan/selectWeb212AR.pcl"
+        self.api_url = self.config.get('api_url', 'https://www.pancon.co.kr/pan/selectWeb212AR.pcl')
         self.session = requests.Session()
         self.session.headers.update({
             'Content-Type': 'application/json;charset=UTF-8',
@@ -27,10 +24,7 @@ class PanScraper(ApiScraper):
         })
 
     def _format_date(self, date_str):
-        """
-        Chuyển đổi chuỗi ngày từ 'YYYYMMDDHHMM' (API format) sang 'DD/MM/YYYY'.
-        Trả về "" nếu lỗi hoặc đầu vào không hợp lệ.
-        """
+        # Chuyển đổi chuỗi ngày từ 'YYYYMMDDHHMM' (API format) sang 'DD/MM/YYYY'. Trả về "" nếu lỗi hoặc đầu vào không hợp lệ.
         if not date_str or not isinstance(date_str, str) or len(date_str) < 8:
                 try:
                     now_timestamp_str = datetime.now().strftime('%Y%m%d%H%M')
@@ -55,9 +49,7 @@ class PanScraper(ApiScraper):
             return ""
 
     def _parse_date_obj(self, date_str):
-        """
-        Chuyển đổi chuỗi ngày 'YYYYMMDDHHMM' sang đối tượng date
-        để so sánh. Trả về None nếu lỗi.
+        # Chuyển đổi chuỗi ngày 'YYYYMMDDHHMM' sang đối tượng date để so sánh. Trả về None nếu lỗi.
         """
         if not date_str or not isinstance(date_str, str) or len(date_str) < 8:
             if date_str and len(date_str) > 10 :

@@ -11,15 +11,12 @@ from schemas import N8nTrackingInfo
 logger = logging.getLogger(__name__)
 
 class MscScraper(ApiScraper):
-    """
-    Triển khai logic scraping cụ thể cho trang web MSC,
-    bằng cách gọi API trực tiếp và chuẩn hóa kết quả theo template JSON.
-    """
+    # Triển khai logic scraping cho MSC bằng API trực tiếp và chuẩn hóa kết quả theo template JSON.
 
     def __init__(self, driver, config):
         super().__init__(config=config)
         
-        self.api_url = "https://www.msc.com/api/feature/tools/TrackingInfo"
+        self.api_url = self.config.get('api_url', 'https://www.msc.com/api/feature/tools/TrackingInfo')
         
         self.session.headers.update({
             'Accept': 'application/json, text/plain, */*',
@@ -38,10 +35,7 @@ class MscScraper(ApiScraper):
         })
 
     def _format_date(self, date_str):
-        """
-        Chuyển đổi chuỗi ngày từ 'DD/MM/YYYY' sang 'DD/MM/YYYY'.
-        Trả về chuỗi rỗng "" nếu định dạng không hợp lệ hoặc đầu vào là None/rỗng.
-        """
+        # Chuyển đổi chuỗi ngày từ 'DD/MM/YYYY' sang 'DD/MM/YYYY'. Trả về chuỗi rỗng nếu định dạng không hợp lệ hoặc đầu vào là None/rỗng.
         if not date_str or not isinstance(date_str, str):
             return ""
         try:
@@ -52,10 +46,7 @@ class MscScraper(ApiScraper):
             return ""
 
     def scrape(self, tracking_number):
-        """
-        Scrape dữ liệu cho một Booking Number bằng cách gọi API
-        và trả về một đối tượng N8nTrackingInfo hoặc lỗi.
-        """
+        # Scrape dữ liệu cho một Booking Number bằng cách gọi API và trả về một đối tượng N8nTrackingInfo hoặc lỗi.
         logger.info("[MSC API Scraper] Bắt đầu scrape cho mã: %s", tracking_number)
         t_total_start = time.time() # Tổng thời gian bắt đầu
 

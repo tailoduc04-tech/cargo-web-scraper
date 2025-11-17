@@ -14,15 +14,10 @@ from schemas import N8nTrackingInfo
 logger = logging.getLogger(__name__)
 
 class EmcScraper(SeleniumScraper):
-    """
-    Triển khai logic scraping cụ thể cho trang Evergreen (EMC)
-    và chuẩn hóa kết quả theo template JSON yêu cầu.
-    """
+    # Triển khai logic scraping cho Evergreen (EMC) và chuẩn hóa kết quả theo template JSON yêu cầu.
 
     def _format_date(self, date_str):
-        """
-        Chuyển đổi chuỗi ngày từ 'MON-DD-YYYY' (ví dụ: SEP-21-2025) sang 'DD/MM/YYYY'.
-        """
+        # Chuyển đổi chuỗi ngày từ 'MON-DD-YYYY' (ví dụ: SEP-21-2025) sang 'DD/MM/YYYY'.
         if not date_str or not isinstance(date_str, str):
             return None
         try:
@@ -36,9 +31,7 @@ class EmcScraper(SeleniumScraper):
             return date_str
 
     def scrape(self, tracking_number):
-        """
-        Phương thức scraping chính cho Evergreen.
-        """
+        # Phương thức scraping chính cho Evergreen.
         logger.info("Bắt đầu scrape cho mã: %s", tracking_number)
         t_total_start = time.time() # Tổng thời gian bắt đầu
         main_window = self.driver.current_window_handle
@@ -118,9 +111,7 @@ class EmcScraper(SeleniumScraper):
 
 
     def _extract_events_from_popup(self):
-        """
-        Trích xuất lịch sử di chuyển từ cửa sổ popup của container.
-        """
+        # Trích xuất lịch sử di chuyển từ cửa sổ popup của container.
         events = []
         try:
             # Chờ bảng trong popup xuất hiện
@@ -142,9 +133,7 @@ class EmcScraper(SeleniumScraper):
         return events
 
     def _find_event_by_keywords(self, events, desc_keyword, loc_keyword):
-        """
-        Tìm một sự kiện cụ thể trong danh sách, trả về sự kiện đầu tiên khớp.
-        """
+        # Tìm một sự kiện cụ thể trong danh sách, trả về sự kiện đầu tiên khớp.
         if not events or not loc_keyword:
             return {}
         
@@ -164,7 +153,7 @@ class EmcScraper(SeleniumScraper):
         return {}
     
     def _parse_sortable_date(self, date_str):
-        """Helper: Chuyển ngày 'Sep-21-2025' thành đối tượng datetime để sort."""
+        # Helper: Chuyển ngày 'Sep-21-2025' thành đối tượng datetime để sort.
         if not date_str:
             return datetime.min
         try:
@@ -174,9 +163,7 @@ class EmcScraper(SeleniumScraper):
             return datetime.min # Đẩy các ngày lỗi về đầu
 
     def _extract_and_normalize_data(self, tracking_number, main_window):
-        """
-        Hàm chính để trích xuất dữ liệu từ trang kết quả và các popup.
-        """
+        # Hàm chính để trích xuất dữ liệu từ trang kết quả và các popup.
         try:
             # --- LẤY THÔNG TIN CƠ BẢN TỪ TRANG CHÍNH ---
             bl_number = None

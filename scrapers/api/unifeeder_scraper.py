@@ -11,14 +11,11 @@ from schemas import N8nTrackingInfo
 logger = logging.getLogger(__name__)
 
 class UnifeederScraper(ApiScraper):
-    """
-    Triển khai logic scraping cụ thể cho trang Unifeeder (Avana) bằng cách gọi API trực tiếp
-    và chuẩn hóa kết quả theo định dạng JSON yêu cầu.
-    """
+    # Triển khai logic scraping cho Unifeeder (Avana) bằng API trực tiếp và chuẩn hóa kết quả theo định dạng JSON yêu cầu.
 
     def __init__(self, driver, config):
         self.config = config
-        self.api_url = "https://api-fr.cargoes.com/track/avana"
+        self.api_url = self.config.get('api_url', 'https://api-fr.cargoes.com/track/avana')
         self.session = requests.Session()
         self.session.headers.update({
             'Accept': 'application/json, text/plain, */*',
@@ -29,10 +26,7 @@ class UnifeederScraper(ApiScraper):
         })
 
     def _format_date(self, date_str):
-        """
-        Chuyển đổi chuỗi ngày từ API format 'YYYY-MM-DDTHH:MM:SS' sang 'DD/MM/YYYY'.
-        Trả về "" nếu đầu vào không hợp lệ hoặc rỗng.
-        """
+        # Chuyển đổi chuỗi ngày từ API format 'YYYY-MM-DDTHH:MM:SS' sang 'DD/MM/YYYY'. Trả về "" nếu lỗi.
         if not date_str or not isinstance(date_str, str):
             return ""
         try:
@@ -47,9 +41,7 @@ class UnifeederScraper(ApiScraper):
             return "" # Trả về chuỗi rỗng nếu lỗi
 
     def scrape(self, tracking_number):
-        """
-        Phương thức scrape chính bằng API.
-        """
+        # Phương thức scrape chính bằng API.
         logger.info("[Unifeeder API Scraper] Bắt đầu scrape cho mã: %s", tracking_number)
         t_total_start = time.time()
 

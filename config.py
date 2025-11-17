@@ -39,9 +39,11 @@ SCRAPER_CONFIGS = {
     },
     "MSC": {
         "url": "https://www.msc.com/en/track-a-shipment",
+        "api_url": "https://www.msc.com/api/feature/tools/TrackingInfo",
     },
     "CSL": {
         "url": "https://cordelialine.com/bltracking/?blno=",
+        "api_url": "https://erp.cordelialine.com/cordelia/app/bltracking/bltracingweb?blno={blno}",
     },
     #"zim": {
     #    "url": "https://www.zim.com/tools/track-a-shipment",
@@ -51,16 +53,20 @@ SCRAPER_CONFIGS = {
     #},
     "PIL": {
         "url": "https://www.pilship.com/digital-solutions/?tab=customer&id=track-trace&label=containerTandT&module=TrackTraceJob&refNo=<BL_NUMBER>",
+        "get_n_url": "https://www.pilship.com/wp-content/themes/hello-theme-child-master/pil-api/common/get-n.php",
+        "track_url": "https://www.pilship.com/wp-content/themes/hello-theme-child-master/pil-api/trackntrace-containertnt.php",
+        "track_container_url": "https://www.pilship.com/wp-content/themes/hello-theme-child-master/pil-api/trackntrace-containertnt-trace.php",
     },
     "SNK": {
         "url": "https://ebiz.sinokor.co.kr/BLDetail?blno=",
     },
     "UNIFEEDER": {
         "url": "https://www.unifeeder.cargoes.com/tracking?ID=",
+        "api_url": "https://api-fr.cargoes.com/track/avana",
     },
     "HEUNG-A": {
         "url": "https://ebiz.heungaline.com/BLDetail?blno="
-     },
+    },
     "Tailwind": {
         "url": "https://tailwind-shipping.com/en/home"
      },
@@ -68,19 +74,28 @@ SCRAPER_CONFIGS = {
     #   "url": "https://www.hmm21.com/e-service/general/trackNTrace/TrackNTrace.do"
     #}
     "KMTC": {
-        "url": "https://www.ekmtc.com/index.html#/cargo-tracking"
+        "url": "https://www.ekmtc.com/index.html#/cargo-tracking",
+        "api_step1_url": "https://api.ekmtc.com/trans/trans/cargo-tracking/",
+        "api_step2_url": "https://api.ekmtc.com/trans/trans/cargo-tracking/{bkgNo}/close-info",
     },
     "SITC": {
-        "url": "https://ebusiness.sitcline.com/#/topMenu/cargoTrack"
+        "url": "https://ebusiness.sitcline.com/#/topMenu/cargoTrack",
+        "base_url": "https://ebusiness.sitcline.com/",
+        "api_url": "https://ebusiness.sitcline.com/api/equery/cargoTrack/searchTrack",
     },
     "GOLSTAR": {
-        "url": "https://www.goldstarline.com/tools/track_shipment"
+        "url": "https://www.goldstarline.com/tools/track_shipment",
+        "api_url": "https://www.goldstarline.com/api/cms",
     },
     "YML": {
-        "url": "https://e-solution.yangming.com/e-service/track_trace/track_trace_cargo_tracking.aspx"
+        "url": "https://e-solution.yangming.com/e-service/track_trace/track_trace_cargo_tracking.aspx",
+        "landing_url": "https://www.yangming.com/en/esolution/cargo_tracking",
+        "api_url": "https://www.yangming.com/api/CargoTracking/GetTracking",
     },
     "ONE": {
-        "url": "https://ecomm.one-line.com/one-ecom/manage-shipment/cargo-tracking?trakNoParam="
+        "url": "https://ecomm.one-line.com/one-ecom/manage-shipment/cargo-tracking?trakNoParam=",
+        "search_url": "https://ecomm.one-line.com/api/v1/edh/containers/track-and-trace/search",
+        "events_url": "https://ecomm.one-line.com/api/v1/edh/containers/track-and-trace/cop-events",
     },
     "COSCO": {
         "url": "https://elines.coscoshipping.com/ebusiness/cargotracking"
@@ -89,15 +104,19 @@ SCRAPER_CONFIGS = {
         "url": "https://ct.shipmentlink.com/servlet/TDB1_CargoTracking.do"
     },
     "OSL": {
-        "url": "https://star-liners.com/track-my-shipment/"
+        "url": "https://star-liners.com/track-my-shipment/",
+        "api_url": "https://star-liners.com/wp-admin/admin-ajax.php",
+        "nonce": "23a2b8b108",
     },
     "PAN": {
-        "url": "http://www.shippingline.org/track/?type=bill&container={BL_NUMBER}&line=pancont&track=Track+container"
+        "url": "http://www.shippingline.org/track/?type=bill&container={BL_NUMBER}&line=pancont&track=Track+container",
+        "api_url": "https://www.pancon.co.kr/pan/selectWeb212AR.pcl",
     },
     "SEALEAD": {
-        "url": "https://www.sea-lead.com/track-shipment/"
+        "url": "https://www.sea-lead.com/track-shipment/",
     },
     "TRANSLINER": {
-        "url": "https://translinergroup.track.tigris.systems/?ref="
+        "url": "https://translinergroup.track.tigris.systems/?ref=",
+        "api_url": "https://translinergroup.track.tigris.systems/api/bookings/{booking_number}",
     }
 }

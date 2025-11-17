@@ -11,14 +11,11 @@ from schemas import N8nTrackingInfo
 logger = logging.getLogger(__name__)
 
 class GoldstarScraper(ApiScraper):
-    """
-    Triển khai logic scraping cụ thể cho trang Gold Star Line bằng cách gọi API trực tiếp
-    và chuẩn hóa kết quả theo yêu cầu.
-    """
+    # Triển khai logic scraping cho Gold Star Line bằng API trực tiếp và chuẩn hóa kết quả.
 
     def __init__(self, driver, config):
         self.config = config
-        self.api_url = "https://www.goldstarline.com/api/cms"
+        self.api_url = self.config.get('api_url', 'https://www.goldstarline.com/api/cms')
         self.session = requests.Session()
         self.session.headers.update({
             'Accept': '*/*',
@@ -36,11 +33,8 @@ class GoldstarScraper(ApiScraper):
         })
 
     def _format_date(self, date_str):
-        """
-        Chuyển đổi chuỗi ngày từ API format 'YYYY-MM-DDTHH:MM:SS' hoặc
-        'YYYY-MM-DDTHH:MM:SS.000' sang 'DD/MM/YYYY'.
-        Trả về "" nếu đầu vào không hợp lệ hoặc rỗng.
-        """
+        # Chuyển đổi chuỗi ngày từ API format 'YYYY-MM-DDTHH:MM:SS' hoặc 'YYYY-MM-DDTHH:MM:SS.000' sang 'DD/MM/YYYY'.
+        # Trả về "" nếu đầu vào không hợp lệ hoặc rỗng.
         if not date_str or not isinstance(date_str, str):
             return ""
         try:
@@ -54,10 +48,7 @@ class GoldstarScraper(ApiScraper):
             return ""
 
     def scrape(self, tracking_number):
-        """
-        Phương thức scrape chính bằng API.
-        Thực hiện gọi API tracking.
-        """
+        # Phương thức scrape chính bằng API. Thực hiện gọi API tracking.
         logger.info("[Goldstar API Scraper] Bắt đầu scrape cho mã: %s", tracking_number)
         t_total_start = time.time()
 
@@ -133,9 +124,7 @@ class GoldstarScraper(ApiScraper):
             return None, f"Đã xảy ra lỗi không mong muốn cho '{tracking_number}': {e}"
 
     def _extract_and_normalize_data_api(self, api_data, tracking_number_input):
-        """
-        Trích xuất và chuẩn hóa dữ liệu từ dictionary JSON trả về của API Goldstar.
-        """
+        # Trích xuất và chuẩn hóa dữ liệu từ dictionary JSON trả về của API Goldstar.
         logger.info("[Goldstar API Scraper] --- Bắt đầu _extract_and_normalize_data_api ---")
         t_extract_detail_start = time.time()
         try:

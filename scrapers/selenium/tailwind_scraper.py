@@ -14,16 +14,10 @@ from schemas import N8nTrackingInfo
 logger = logging.getLogger(__name__)
 
 class TailwindScraper(SeleniumScraper):
-    """
-    Triển khai logic scraping cụ thể cho trang web Tailwind Shipping.
-    Sử dụng Selenium để trích xuất dữ liệu và chuẩn hóa
-    """
+    # Triển khai logic scraping cho Tailwind Shipping. Sử dụng Selenium để trích xuất dữ liệu và chuẩn hóa.
 
     def _format_date(self, date_str):
-        """
-        Chuyển đổi các định dạng ngày tháng khác nhau sang 'DD/MM/YYYY'.
-        Ví dụ: '14-Oct-2025 06:51' hoặc 'ETD: 01/10/2025 11:18 am'
-        """
+        # Chuyển đổi các định dạng ngày tháng khác nhau sang 'DD/MM/YYYY'. Ví dụ: '14-Oct-2025 06:51' hoặc 'ETD: 01/10/2025 11:18 am'
         if not date_str or not isinstance(date_str, str):
             return None
         
@@ -55,10 +49,7 @@ class TailwindScraper(SeleniumScraper):
         return date_str # Trả về chuỗi gốc nếu không parse được
 
     def scrape(self, tracking_number):
-        """
-        Phương thức scrape chính.
-        Thực hiện điều hướng, tìm kiếm, xử lý popup và trả về dữ liệu.
-        """
+        # Phương thức scrape chính. Thực hiện điều hướng, tìm kiếm, xử lý popup và trả về dữ liệu.
         logger.info("Bắt đầu scrape cho mã: %s", tracking_number)
         t_total_start = time.time() # Tổng thời gian bắt đầu
         original_window = self.driver.current_window_handle
@@ -170,11 +161,7 @@ class TailwindScraper(SeleniumScraper):
 
 
     def _extract_and_normalize_data(self, tracking_number): # Thêm tracking_number làm tham số
-        """
-        Trích xuất và chuẩn hóa dữ liệu từ trang kết quả của Tailwind.
-        Hàm này sẽ lấy thông tin chung, sau đó mở popup 'View details'
-        để lấy lịch sử di chuyển và xác định các ngày ATD, ATA, v.v.
-        """
+        # Trích xuất và chuẩn hóa dữ liệu từ trang kết quả của Tailwind. Lấy thông tin chung, sau đó mở popup 'View details' để lấy lịch sử di chuyển và xác định các ngày ATD, ATA, v.v.
         logger.info("--- Bắt đầu trích xuất chi tiết ---")
         t_extract_detail_start = time.time()
         try:
@@ -298,9 +285,7 @@ class TailwindScraper(SeleniumScraper):
             return None
 
     def _get_tooltip_text(self, element):
-        """
-        Helper để lấy text từ 'data-original-title' (nếu có), nếu không thì lấy .text
-        """
+        # Helper để lấy text từ 'data-original-title' (nếu có), nếu không thì lấy .text
         try:
             tooltip = element.get_attribute('data-original-title')
             if tooltip:
@@ -310,9 +295,7 @@ class TailwindScraper(SeleniumScraper):
         return element.text.strip()
 
     def _extract_events_from_popup(self):
-        """
-        Trích xuất tất cả các sự kiện di chuyển từ popup 'View details'.
-        """
+        # Trích xuất tất cả các sự kiện di chuyển từ popup 'View details'.
         events = []
         try:
             movement_details = self.driver.find_elements(By.CSS_SELECTOR, ".fancybox-container .media")
@@ -340,10 +323,7 @@ class TailwindScraper(SeleniumScraper):
         return events
 
     def _find_event(self, events, description_keyword, location_keyword):
-        """
-        Tìm sự kiện đầu tiên khớp với TỪ KHÓA mô tả và TỪ KHÓA địa điểm.
-        So sánh không phân biệt chữ hoa thường và kiểm tra 'contains' (chứa).
-        """
+        # Tìm sự kiện đầu tiên khớp với từ khóa mô tả và từ khóa địa điểm. So sánh không phân biệt chữ hoa thường và kiểm tra 'contains'.
         if not events or not location_keyword:
              logger.debug("--> _find_event: Danh sách sự kiện rỗng hoặc thiếu location_keyword.")
              return {}

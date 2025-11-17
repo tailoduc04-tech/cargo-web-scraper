@@ -10,21 +10,15 @@ from ..api_scraper import ApiScraper
 logger = logging.getLogger(__name__)
 
 class CordeliaScraper(ApiScraper):
-    """
-    Triển khai logic scraping cụ thể cho trang Cordelia Line bằng cách gọi API trực tiếp
-    và chuẩn hóa kết quả.
-    """
+    # Triển khai logic scraping cho Cordelia Line bằng API trực tiếp và chuẩn hóa kết quả.
 
     def __init__(self, driver, config):
         super().__init__(config=config)
-        self.api_url_template = "https://erp.cordelialine.com/cordelia/app/bltracking/bltracingweb?blno={blno}"
+        self.api_url_template = self.config.get('api_url', 'https://erp.cordelialine.com/cordelia/app/bltracking/bltracingweb?blno={blno}')
 
     def _format_date(self, date_str):
-        """
-        Chuyển đổi chuỗi ngày từ 'DD/MM/YYYY HH:MM...' hoặc 'DD/MM/YYYY'
-        sang 'DD/MM/YYYY'.
-        Trả về "" nếu đầu vào không hợp lệ hoặc rỗng.
-        """
+        # Chuyển đổi chuỗi ngày từ 'DD/MM/YYYY HH:MM...' hoặc 'DD/MM/YYYY' sang 'DD/MM/YYYY'.
+        # Trả về "" nếu đầu vào không hợp lệ hoặc rỗng.
         if not date_str or not isinstance(date_str, str):
             return ""
         try:
@@ -38,10 +32,7 @@ class CordeliaScraper(ApiScraper):
             return ""
 
     def scrape(self, tracking_number):
-        """
-        Lấy dữ liệu cho một số theo dõi bằng cách gọi API trực tiếp của Cordelia Line
-        và trả về ở định dạng JSON chuẩn hóa.
-        """
+        # Lấy dữ liệu cho một số theo dõi bằng cách gọi API trực tiếp của Cordelia Line và trả về JSON chuẩn hóa.
         logger.info("[Cordelia API Scraper] Bắt đầu lấy dữ liệu cho mã: %s", tracking_number)
         t_total_start = time.time() # Tổng thời gian bắt đầu
 
@@ -113,9 +104,7 @@ class CordeliaScraper(ApiScraper):
             return None, f"Đã xảy ra lỗi không mong muốn cho '{tracking_number}': {e}"
 
     def _extract_and_normalize_data(self, data, tracking_number):
-        """
-        Trích xuất và chuẩn hóa dữ liệu từ JSON trả về của API Cordelia.
-        """
+        # Trích xuất và chuẩn hóa dữ liệu từ JSON trả về của API Cordelia.
         try:
             # Lấy phần tử đầu tiên trong danh sách kết quả
             item = data["searchList"][0]
