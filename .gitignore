@@ -215,3 +215,4 @@ clean_html.py
 prompt.txt
 test_time.py
 test_*.py
+postgres_data/

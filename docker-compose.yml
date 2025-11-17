@@ -12,42 +12,35 @@ services:
     env_file:
       - .env
     depends_on:
-      - selenium
+      selenium:
+        condition: service_started
     networks:
       - app-network
     deploy:
       resources:
         limits:
           cpus: '2.0'
-          memory: 4G
+          memory: 6G
 
   selenium:
     image: selenium/standalone-chrome:latest
     container_name: selenium_chrome
     shm_size: 4g
     restart: unless-stopped
+    tmpfs:
+      - /tmp
+    environment:
+    - SE_NODE_MAX_SESSIONS=4
+    - SE_NODE_OVERRIDE_MAX_SESSIONS=true
+    - SE_NODE_SESSION_TIMEOUT=300
+    - SE_SESSION_REQUEST_TIMEOUT=300
     networks:
       - app-network
     deploy:
       resources:
         limits:
           cpus: '4.0'
-          memory: 8G
-
-  cloudflare-tunnel:
-    image: cloudflare/cloudflared:latest
-    container_name: cloudflare_tunnel
-    restart: unless-stopped
-    command: tunnel --no-autoupdate run --token eyJhIjoiMzA4NzVjZWI0MzRmMzYwZGUxNTViOWYxYWQxOGU4YzQiLCJ0IjoiZmQyNTE1ODQtMGFjOS00Y2Y3LTk3OGYtNjE5NzY2ZTgzYTRhIiwicyI6Ik5qVmxZMlZsWldNdFl6VTRaaTAwWWpjM0xXRXpOMkV0TURreVltWm1Nek0wTW1WbCJ9
-    depends_on:
-      - app
-    networks:
-      - app-network
-    deploy:
-      resources:
-        limits:
-          cpus: '1.0'
-          memory: 3G
+          memory: 6G
 
 networks:
   app-network:
