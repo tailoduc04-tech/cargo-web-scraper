@@ -18,6 +18,7 @@ from .api.pan_scraper import PanScraper
 from .api.sealead_scraper import SealeadScraper
 from .api.transliner_scraper import TranslinerScraper
 from .api.yangming_scraper import YangmingScraper
+from .api.zim_scraper import ZimScraper
 
 from .selenium.interasia_scraper import InterasiaScraper
 from .selenium.tailwind_scraper import TailwindScraper
@@ -46,7 +47,8 @@ SCRAPERS = {
     "OSL": OslScraper,
     "PAN": PanScraper,
     "SEALEAD": SealeadScraper,
-    "TRANSLINER": TranslinerScraper
+    "TRANSLINER": TranslinerScraper,
+    "ZIM": ZimScraper
 }
 
 # --- Strategy definition for the app ---
@@ -75,7 +77,8 @@ SCRAPER_STRATEGY = {
     "PAN": "api",
     "SEALEAD": "api",
     "TRANSLINER": "api",
-    "YML": "api"
+    "YML": "api",
+    "ZIM": "api"
 }
 
 def get_scraper(name, driver_or_page, config):

@@ -45,12 +45,11 @@ SCRAPER_CONFIGS = {
         "url": "https://cordelialine.com/bltracking/?blno=",
         "api_url": "https://erp.cordelialine.com/cordelia/app/bltracking/bltracingweb?blno={blno}",
     },
-    #"zim": {
-    #    "url": "https://www.zim.com/tools/track-a-shipment",
-    #    "output_files": {
-    #        "tracking_info": "zim_tracking_info.csv"
-    #    }
-    #},
+    "ZIM": {
+        "url": "https://www.zim.com/tools/track-a-shipment",
+        "api_url": "https://apigw.zim.com/digital/TrackShipment/v1/",
+        "subscription_key": "9d63cf020a4c4708a7b0ebfe39578300"
+    },
     "PIL": {
         "url": "https://www.pilship.com/digital-solutions/?tab=customer&id=track-trace&label=containerTandT&module=TrackTraceJob&refNo=<BL_NUMBER>",
         "get_n_url": "https://www.pilship.com/wp-content/themes/hello-theme-child-master/pil-api/common/get-n.php",
