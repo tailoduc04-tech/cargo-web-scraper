@@ -11,36 +11,13 @@ services:
       - ./output:/app/output
     env_file:
       - .env
-    depends_on:
-      selenium:
-        condition: service_started
-    networks:
-      - app-network
-    deploy:
-      resources:
-        limits:
-          cpus: '2.0'
-          memory: 6G
-
-  selenium:
-    image: selenium/standalone-chrome:latest
-    container_name: selenium_chrome
-    shm_size: 4g
-    restart: unless-stopped
-    tmpfs:
-      - /tmp
-    environment:
-    - SE_NODE_MAX_SESSIONS=4
-    - SE_NODE_OVERRIDE_MAX_SESSIONS=true
-    - SE_NODE_SESSION_TIMEOUT=300
-    - SE_SESSION_REQUEST_TIMEOUT=300
     networks:
       - app-network
     deploy:
       resources:
         limits:
           cpus: '4.0'
-          memory: 6G
+          memory: 8G
 
 networks:
   app-network:

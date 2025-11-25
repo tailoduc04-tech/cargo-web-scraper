@@ -4,13 +4,18 @@ import zipfile
 import uuid
 import logging
 from selenium import webdriver
+from selenium.webdriver.chrome.service import Service
+from webdriver_manager.chrome import ChromeDriverManager
+from selenium.webdriver.chrome.options import Options
 
 # Logger để debug
 logger = logging.getLogger(__name__)
 
 def create_driver(proxy_config=None, page_load_strategy='eager'):
-    options = webdriver.ChromeOptions()
+    options = Options()
     options.page_load_strategy = page_load_strategy
+    
+    options.add_argument("--headless=new")
 
     # --- Cấu hình cơ bản ---
     options.add_argument("--start-maximized")
@@ -39,10 +44,9 @@ def create_driver(proxy_config=None, page_load_strategy='eager'):
     driver = None
     try:
         # Kết nối tới Selenium Hub
-        driver = webdriver.Remote(
-            command_executor='http://selenium:4444/wd/hub',
-            options=options
-        )
+        service = Service(ChromeDriverManager().install())
+        
+        driver = webdriver.Chrome(service=service, options=options)
 
         # --- Chạy script che giấu Selenium ---
         # Nếu lệnh này timeout, driver sẽ được đóng ở block except bên dưới -> Hết Leak

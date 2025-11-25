@@ -5,6 +5,8 @@ from datetime import datetime
 from fastapi import FastAPI, Form
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
+from contextlib import asynccontextmanager
+from driver_pool import driver_pool
 
 import config
 import driver_setup
@@ -17,11 +19,19 @@ import logging
 import time
 
 logging.basicConfig(
-    level=logging.WARNING,
+    level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
 )
 
-app = FastAPI()
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Code chạy khi App KHỞI ĐỘNG
+    driver_pool.initialize() 
+    yield
+    # Code chạy khi App TẮT
+    driver_pool.shutdown()
+
+app = FastAPI(lifespan=lifespan)
 
 #Cấu hình CORS
 origins = [
@@ -44,21 +54,24 @@ def run_selenium_task_sync(scraper_name, tracking_number, scraper_config, proxy_
     # Hàm này chạy toàn bộ vòng đời của một driver: Tạo -> Scrape -> Thoát
     driver = None
     try:
-        print(f"[{scraper_name}] Luồng: Khởi động trình điều khiển...")
-        driver = driver_setup.create_driver(proxy_info)
+        print(f"[{scraper_name}] Đang lấy driver từ Pool...")
+        # 1. Lấy driver từ Pool (Sẽ chờ nếu cả 4 driver đều đang bận)
+        driver = driver_pool.get_driver()
+        
+        # 2. Scrape như bình thường
         scraper_instance = scrapers.get_scraper(scraper_name, driver, scraper_config)
         data, error = scraper_instance.scrape(tracking_number)
         return data, error
+        
     except Exception as e:
-        print(f"[{scraper_name}] Lỗi trong luồng: {e}")
+        print(f"[{scraper_name}] Lỗi trong luồng Selenium: {e}")
         return None, str(e)
+        
     finally:
+        # 3. Trả driver về Pool
         if driver:
-            print(f"[{scraper_name}] Luồng: Đóng trình điều khiển.")
-            try:
-                driver.quit()
-            except Exception:
-                pass
+            print(f"[{scraper_name}] Đang trả driver về Pool.")
+            driver_pool.return_driver(driver)
 
 # Đổi thành async def
 async def run_scraping_task(scraper_name: str, tracking_number: str) -> Tuple[Optional[N8nTrackingInfo], Optional[str]]:
